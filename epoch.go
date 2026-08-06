@@ -19,13 +19,14 @@ const (
 // Use [validJulianDateRange] to check before calling.
 func julianDate(t time.Time) float64 {
 	ms := t.UTC().UnixNano() / 1e6
+
 	return float64(ms)/86400000.0 + j1970
 }
 
 // ErrDateOutOfRange is returned when a date falls outside the valid range
 // for Julian date calculations (the int64 nanosecond bounds, approximately
 // 1677-09-21 to 2262-04-11).
-const ErrDateOutOfRange = errString("dusk: date outside valid range (1677-09-21 to 2262-04-11)")
+const ErrDateOutOfRange = stringError("dusk: date outside valid range (1677-09-21 to 2262-04-11)")
 
 // julianDateMin and julianDateMax are the bounds of the int64 UnixNano range.
 var (
@@ -39,6 +40,7 @@ func validJulianDateRange(t time.Time) error {
 	if t.Before(julianDateMin) || t.After(julianDateMax) {
 		return ErrDateOutOfRange
 	}
+
 	return nil
 }
 
@@ -68,6 +70,7 @@ func greenwichMeanSiderealTime(t time.Time) float64 {
 func localSiderealTime(t time.Time, longitude float64) float64 {
 	gst := greenwichMeanSiderealTime(t) // degrees
 	lst := gst + longitude              // degrees
+
 	return mod24(lst / 15.0)
 }
 
@@ -80,6 +83,7 @@ func julianCentury(t time.Time) float64 {
 // integer (used for mean solar time).
 func julianDay(t time.Time) int {
 	JD := julianDate(t)
+
 	return int(math.Round(JD - j2000))
 }
 
@@ -96,6 +100,7 @@ func universalTimeFromJD(jd float64) time.Time {
 // datetimeZeroHour returns midnight UTC for the given date.
 func datetimeZeroHour(t time.Time) time.Time {
 	u := t.UTC()
+
 	return time.Date(u.Year(), u.Month(), u.Day(), 0, 0, 0, 0, time.UTC)
 }
 

@@ -16,7 +16,7 @@ func BenchmarkMoonriseMoonset(b *testing.B) {
 	date := time.Date(2024, 1, 15, 0, 0, 0, 0, benchEST)
 
 	for b.Loop() {
-		MoonriseMoonset(date, benchObs) //nolint:errcheck
+		MoonriseMoonset(date, benchObs) //nolint:errcheck // benchmark discards the result, timing is what matters
 	}
 }
 
@@ -24,6 +24,6 @@ func BenchmarkSunriseSunset(b *testing.B) {
 	date := time.Date(2024, 3, 20, 0, 0, 0, 0, benchEST)
 
 	for b.Loop() {
-		SunriseSunset(date, benchObs) //nolint:errcheck
+		SunriseSunset(date, benchObs) //nolint:errcheck // benchmark discards the result, timing is what matters
 	}
 }

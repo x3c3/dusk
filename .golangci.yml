@@ -1,28 +1,58 @@
+# golangci-lint v2 configuration — aggressively opinionated.
+#
+# Posture: enable every linter, then disable only those that fight this repo's
+# deliberate design (transcribed Meeus coefficient tables, white-box tests,
+# terse math-notation variable names) or standard idiomatic Go.
 version: "2"
 
 linters:
-  enable:
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - copyloopvar
-    - durationcheck
-    - errorlint
-    - gocritic
-    - misspell
-    - nilerr
-    - prealloc
-    - revive
-    - unconvert
-    - unparam
-    - whitespace
-
+  default: all
+  disable:
+    - exhaustruct # partial struct inits in tests are intentional
+    - mnd # the codebase transcribes Meeus algorithm coefficients (magic numbers by nature)
+    - goconst # repeated domain/test literals (phase names, timezone strings) aren't worth extracting
+    - varnamelen # Meeus convention short names (T, M, J, D, F...) are idiomatic here
+    - gochecknoglobals # Meeus coefficient tables and epoch bounds are intentional package-level data
+    - noinlineerr # `if err := f(); err != nil` is standard Go
+    - paralleltest # ~0 benefit on fast deterministic tests; huge manual churn
+    - wsl # deprecated; superseded by wsl_v5
+    - asciicheck # Meeus notation uses prime (ʹ) for M′ (Moon's mean anomaly) in coefficient table fields
   settings:
+    depguard:
+      rules:
+        main:
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/philoserf/dusk/v3
+    cyclop:
+      max-complexity: 15
     gocritic:
       disabled-checks:
         - captLocal # Meeus convention: T (century), M (anomaly), J (day), etc.
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - std-error-handling
+    rules:
+      # White-box tests are intentional, and table-driven tests trip several
+      # linters on their terse, repetitive shape. Relax them in _test.go only.
+      - path: _test\.go
+        linters:
+          - dupl
+          - funlen
+          - gocognit
+          - cyclop
+          - lll
+          - gosec
+          - noctx
+          - testpackage
+          - gochecknoglobals
 
 formatters:
   enable:

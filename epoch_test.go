@@ -69,6 +69,7 @@ func TestValidJulianDateRange(t *testing.T) {
 			if tt.wantErr && !errors.Is(err, ErrDateOutOfRange) {
 				t.Errorf("expected ErrDateOutOfRange, got %v", err)
 			}
+
 			if !tt.wantErr && err != nil {
 				t.Errorf("expected nil, got %v", err)
 			}
@@ -163,10 +164,12 @@ func TestLocalSiderealTime(t *testing.T) {
 		dt := time.Date(1987, 4, 10, 0, 0, 0, 0, time.UTC)
 		lst0 := localSiderealTime(dt, 0.0)
 		lst15 := localSiderealTime(dt, 15.0)
+
 		diff := lst15 - lst0
 		if diff < 0 {
 			diff += 24
 		}
+
 		if math.Abs(diff-1.0) > 0.001 {
 			t.Errorf("15° longitude should shift LST by 1 hour, got shift = %f", diff)
 		}
@@ -287,6 +290,7 @@ func TestEclipticToEquatorial(t *testing.T) {
 			if math.Abs(eq.ra-tt.wantRA) > tt.eps {
 				t.Errorf("RA = %.4f, want ~%.1f (within %.2f°)", eq.ra, tt.wantRA, tt.eps)
 			}
+
 			if math.Abs(eq.dec-tt.wantDec) > tt.eps {
 				t.Errorf("Dec = %.4f, want ~%.2f (within %.2f°)", eq.dec, tt.wantDec, tt.eps)
 			}
@@ -309,6 +313,7 @@ func TestEquatorialToHorizontal(t *testing.T) {
 	if math.Abs(h.alt-26.06) > eps {
 		t.Errorf("alt = %.4f, want ~26.06° (within %.0f°)", h.alt, eps)
 	}
+
 	if math.Abs(h.az-147.49) > eps {
 		t.Errorf("az = %.4f, want ~147.49° (within %.0f°)", h.az, eps)
 	}

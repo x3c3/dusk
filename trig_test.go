@@ -94,6 +94,7 @@ func TestAsinx(t *testing.T) {
 			if math.IsNaN(got) {
 				t.Fatalf("asinx(%v) = NaN, want %v", tc.x, tc.want)
 			}
+
 			if !approxEqual(got, tc.want, epsTrig) {
 				t.Errorf("asinx(%v) = %v, want %v", tc.x, got, tc.want)
 			}
@@ -119,6 +120,7 @@ func TestAcosx(t *testing.T) {
 			if math.IsNaN(got) {
 				t.Fatalf("acosx(%v) = NaN, want %v", tc.x, tc.want)
 			}
+
 			if !approxEqual(got, tc.want, epsTrig) {
 				t.Errorf("acosx(%v) = %v, want %v", tc.x, got, tc.want)
 			}
@@ -150,9 +152,11 @@ func TestSincosx(t *testing.T) {
 	s, c := sincosx(30)
 	wantSin := 0.5
 	wantCos := math.Sqrt(3) / 2
+
 	if !approxEqual(s, wantSin, epsTrig) {
 		t.Errorf("sincosx(30) sin = %v, want %v", s, wantSin)
 	}
+
 	if !approxEqual(c, wantCos, epsTrig) {
 		t.Errorf("sincosx(30) cos = %v, want %v", c, wantCos)
 	}

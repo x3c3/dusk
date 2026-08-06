@@ -22,6 +22,7 @@ func computeSolarParams(date time.Time, lon float64) solarParams {
 	T := julianCentury(date)
 	delta := solarDeclination(lambda, T)
 	jTransit := solarTransitJD(J, M, lambda)
+
 	return solarParams{delta: delta, jTransit: jTransit}
 }
 
@@ -37,7 +38,9 @@ func SunriseSunset(date time.Time, obs Observer) (SunEvent, error) {
 	if err := validObserver(obs); err != nil {
 		return SunEvent{}, err
 	}
+
 	localDate := date.In(obs.loc)
+
 	date = time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, time.UTC)
 	if err := validJulianDateRange(date); err != nil {
 		return SunEvent{}, err
@@ -109,6 +112,7 @@ func solarEclipticLongitude(M, C float64) float64 {
 // longitude and Julian century T since J2000.0.
 func solarDeclination(lambda, T float64) float64 {
 	eps := meanObliquity(T)
+
 	return asinx(sinx(lambda) * sinx(eps))
 }
 
@@ -131,15 +135,19 @@ func solarHourAngle(delta, depression, lat float64) (float64, error) {
 	} else {
 		h0 = -depression
 	}
+
 	num := sinx(h0) - sinx(lat)*sinx(delta)
 	den := cosx(lat) * cosx(delta)
+
 	cosHA := num / den
 	if cosHA < -1 {
 		return 0, ErrCircumpolar
 	}
+
 	if cosHA > 1 {
 		return 0, ErrNeverRises
 	}
+
 	return acosx(cosHA), nil
 }
 
@@ -187,7 +195,9 @@ func twilight(date time.Time, obs Observer, depression float64) (TwilightEvent, 
 	if err := validObserver(obs); err != nil {
 		return TwilightEvent{}, err
 	}
+
 	localDate := date.In(obs.loc)
+
 	date = time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, time.UTC)
 	if err := validJulianDateRange(date); err != nil {
 		return TwilightEvent{}, err
@@ -195,10 +205,12 @@ func twilight(date time.Time, obs Observer, depression float64) (TwilightEvent, 
 
 	// Evening twilight: sunset at the given depression angle for today.
 	sp := computeSolarParams(date, obs.lon)
+
 	omega, err := solarHourAngle(sp.delta, depression, obs.lat)
 	if err != nil {
 		return TwilightEvent{}, err
 	}
+
 	dusk := universalTimeFromJD(sp.jTransit + omega/360).In(obs.loc)
 
 	// Tomorrow's "rise" at this depression = twilight dawn.
@@ -206,11 +218,14 @@ func twilight(date time.Time, obs Observer, depression float64) (TwilightEvent, 
 	if err := validJulianDateRange(tomorrow); err != nil {
 		return TwilightEvent{}, err
 	}
+
 	sp2 := computeSolarParams(tomorrow, obs.lon)
+
 	omega2, err2 := solarHourAngle(sp2.delta, depression, obs.lat)
 	if err2 != nil {
 		return TwilightEvent{}, err2
 	}
+
 	dawn := universalTimeFromJD(sp2.jTransit - omega2/360).In(obs.loc)
 
 	return TwilightEvent{

@@ -30,6 +30,7 @@ func mod360(x float64) float64 {
 	if x < 0 {
 		x += 360
 	}
+
 	return x
 }
 
@@ -38,5 +39,6 @@ func mod24(x float64) float64 {
 	if x < 0 {
 		x += 24
 	}
+
 	return x
 }

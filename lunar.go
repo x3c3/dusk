@@ -131,6 +131,7 @@ func LunarPhase(date time.Time) (LunarPhaseInfo, error) {
 // a given instant, using the Meeus ecliptic position converted to equatorial.
 func lunarPosition(t time.Time) equatorial {
 	ec := lunarEclipticPosition(t)
+
 	return eclipticToEquatorial(t, ec.lon, ec.lat)
 }
 
@@ -158,6 +159,7 @@ func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error) {
 	if err := validObserver(obs); err != nil {
 		return MoonEvent{}, err
 	}
+
 	if err := validJulianDateRange(date); err != nil {
 		return MoonEvent{}, err
 	}
@@ -167,12 +169,15 @@ func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error) {
 	// spring-forward days are 23h, fall-back days are 25h.
 	d := time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, obs.loc).UTC()
 	nextMidnight := time.Date(localDate.Year(), localDate.Month(), localDate.Day()+1, 0, 0, 0, 0, obs.loc).UTC()
+
 	if err := validJulianDateRange(d); err != nil {
 		return MoonEvent{}, err
 	}
+
 	if err := validJulianDateRange(nextMidnight); err != nil {
 		return MoonEvent{}, err
 	}
+
 	scanMinutes := int(nextMidnight.Sub(d).Minutes())
 
 	var rise, set time.Time
@@ -192,9 +197,11 @@ func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error) {
 		if rise.IsZero() && hz.alt > -lunarHorizonDepression && prevAlt <= -lunarHorizonDepression {
 			rise = cur.In(obs.loc)
 		}
+
 		if set.IsZero() && hz.alt < -lunarHorizonDepression && prevAlt >= -lunarHorizonDepression {
 			set = cur.In(obs.loc)
 		}
+
 		if !rise.IsZero() && !set.IsZero() {
 			break
 		}

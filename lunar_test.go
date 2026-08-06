@@ -40,6 +40,7 @@ func TestLunarPosition(t *testing.T) {
 	if math.Abs(eq.ra-134.7) > 0.5 {
 		t.Errorf("RA = %.4f, want ~134.7°", eq.ra)
 	}
+
 	if math.Abs(eq.dec-13.8) > 0.5 {
 		t.Errorf("Dec = %.4f, want ~13.8°", eq.dec)
 	}
@@ -238,12 +239,15 @@ func TestMoonriseMoonset_AboveHorizon(t *testing.T) {
 				loc = time.UTC
 			} else {
 				var err error
+
 				loc, err = time.LoadLocation(tt.loc)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
+
 			obs := mustObserver(t, tt.lat, tt.lon, loc)
+
 			evt, err := MoonriseMoonset(tt.date, obs)
 			if err != nil {
 				t.Fatal(err)
@@ -252,9 +256,11 @@ func TestMoonriseMoonset_AboveHorizon(t *testing.T) {
 			if evt.AboveHorizon != tt.wantAbove {
 				t.Errorf("AboveHorizon = %v, want %v", evt.AboveHorizon, tt.wantAbove)
 			}
+
 			if evt.Rise.IsZero() != tt.wantRiseZero {
 				t.Errorf("Rise.IsZero() = %v, want %v", evt.Rise.IsZero(), tt.wantRiseZero)
 			}
+
 			if evt.Set.IsZero() != tt.wantSetZero {
 				t.Errorf("Set.IsZero() = %v, want %v", evt.Set.IsZero(), tt.wantSetZero)
 			}
@@ -280,6 +286,7 @@ func TestMoonriseMoonset(t *testing.T) {
 	if evt.Rise.IsZero() {
 		t.Error("expected non-zero rise time")
 	}
+
 	if evt.Set.IsZero() {
 		t.Error("expected non-zero set time")
 	}
@@ -292,6 +299,7 @@ func TestMoonriseMoonset(t *testing.T) {
 	if diff := evt.Rise.Sub(wantRise); diff < -tolerance || diff > tolerance {
 		t.Errorf("Rise = %v, want %v (±%v, diff=%v)", evt.Rise.Format("15:04"), wantRise.Format("15:04"), tolerance, diff)
 	}
+
 	if diff := evt.Set.Sub(wantSet); diff < -tolerance || diff > tolerance {
 		t.Errorf("Set = %v, want %v (±%v, diff=%v)", evt.Set.Format("15:04"), wantSet.Format("15:04"), tolerance, diff)
 	}
@@ -317,6 +325,7 @@ func TestMoonriseMoonset_SouthernHemisphere(t *testing.T) {
 	if evt.Rise.IsZero() {
 		t.Error("expected non-zero rise time for Sydney")
 	}
+
 	if evt.Set.IsZero() {
 		t.Error("expected non-zero set time for Sydney")
 	}
@@ -329,6 +338,7 @@ func TestMoonriseMoonset_SouthernHemisphere(t *testing.T) {
 	if diff := evt.Rise.Sub(wantRise); diff < -tolerance || diff > tolerance {
 		t.Errorf("Rise = %v, want %v (±%v, diff=%v)", evt.Rise.Format("15:04"), wantRise.Format("15:04"), tolerance, diff)
 	}
+
 	if diff := evt.Set.Sub(wantSet); diff < -tolerance || diff > tolerance {
 		t.Errorf("Set = %v, want %v (±%v, diff=%v)", evt.Set.Format("15:04"), wantSet.Format("15:04"), tolerance, diff)
 	}

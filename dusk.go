@@ -24,31 +24,31 @@ import (
 	"time"
 )
 
-// errString is an immutable error type used for sentinel errors.
+// stringError is an immutable error type used for sentinel errors.
 // Unlike errors.New, these can be declared as constants.
-type errString string
+type stringError string
 
-func (e errString) Error() string { return string(e) }
+func (e stringError) Error() string { return string(e) }
 
 // ErrCircumpolar is returned when a celestial object is circumpolar
 // (always above the horizon) at the given latitude.
-const ErrCircumpolar = errString("dusk: object is circumpolar (always above the horizon)")
+const ErrCircumpolar = stringError("dusk: object is circumpolar (always above the horizon)")
 
 // ErrNeverRises is returned when a celestial object never rises above
 // the horizon at the given latitude.
-const ErrNeverRises = errString("dusk: object never rises at this latitude")
+const ErrNeverRises = stringError("dusk: object never rises at this latitude")
 
 // ErrNilLocation is returned when a nil *time.Location is passed to
 // [NewObserver].
-const ErrNilLocation = errString("dusk: location must not be nil")
+const ErrNilLocation = stringError("dusk: location must not be nil")
 
 // ErrNonFiniteCoord is returned when NaN or Inf coordinates are passed
 // to [NewObserver].
-const ErrNonFiniteCoord = errString("dusk: coordinates must be finite (NaN and Inf are not allowed)")
+const ErrNonFiniteCoord = stringError("dusk: coordinates must be finite (NaN and Inf are not allowed)")
 
 // ErrInvalidCoord is returned when latitude or longitude are outside
 // the valid range in [NewObserver].
-const ErrInvalidCoord = errString("dusk: latitude must be in [-90, 90] and longitude in [-180, 180]")
+const ErrInvalidCoord = stringError("dusk: latitude must be in [-90, 90] and longitude in [-180, 180]")
 
 // validObserver returns an error if obs was not constructed via NewObserver
 // (i.e., is a zero-value Observer with a nil location).
@@ -56,6 +56,7 @@ func validObserver(obs Observer) error {
 	if obs.loc == nil {
 		return ErrNilLocation
 	}
+
 	return nil
 }
 
@@ -74,12 +75,15 @@ func NewObserver(lat, lon float64, loc *time.Location) (Observer, error) {
 	if loc == nil {
 		return Observer{}, ErrNilLocation
 	}
+
 	if math.IsNaN(lat) || math.IsInf(lat, 0) || math.IsNaN(lon) || math.IsInf(lon, 0) {
 		return Observer{}, ErrNonFiniteCoord
 	}
+
 	if lat < -90 || lat > 90 || lon < -180 || lon > 180 {
 		return Observer{}, ErrInvalidCoord
 	}
+
 	return Observer{lat: lat, lon: lon, loc: loc}, nil
 }
 
@@ -98,6 +102,7 @@ func (o Observer) String() string {
 	if o.loc != nil {
 		locName = o.loc.String()
 	}
+
 	return fmt.Sprintf("%.4f°, %.4f° (%s)", o.lat, o.lon, locName)
 }
 
@@ -166,6 +171,7 @@ func formatTime(t time.Time) string {
 	if t.IsZero() {
 		return "--:--"
 	}
+
 	return t.Format("15:04")
 }
 
@@ -192,6 +198,7 @@ func (l LunarPhaseInfo) String() string {
 	if namePart != "" {
 		namePart += " "
 	}
+
 	return fmt.Sprintf("%s%.1f%% (day %.1f)", namePart, l.Illumination, l.DaysApprox)
 }
 

@@ -40,13 +40,16 @@ func FuzzLunarPhase(f *testing.F) {
 		if date.Year() < 1800 || date.Year() > 2200 {
 			return
 		}
+
 		p, err := LunarPhase(date)
 		if err != nil {
 			return
 		}
+
 		if math.IsNaN(p.Illumination) {
 			t.Error("NaN illumination")
 		}
+
 		if p.Illumination < 0 || p.Illumination > 100 {
 			t.Errorf("illumination out of range: %f", p.Illumination)
 		}

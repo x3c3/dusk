@@ -20,6 +20,7 @@ func TestSunriseSunset(t *testing.T) {
 	tolerance := 3 * time.Minute
 
 	obs := mustObserver(t, 40.7128, -74.006, nyc)
+
 	event, err := SunriseSunset(date, obs)
 	if err != nil {
 		t.Fatalf("SunriseSunset() returned error: %v", err)
@@ -57,6 +58,7 @@ func TestSunriseSunset_Equatorial(t *testing.T) {
 	date := time.Date(2024, 6, 21, 0, 0, 0, 0, loc) // June solstice
 
 	obs := mustObserver(t, -0.18, -78.47, loc)
+
 	event, err := SunriseSunset(date, obs)
 	if err != nil {
 		t.Fatalf("SunriseSunset() returned error: %v", err)
@@ -65,6 +67,7 @@ func TestSunriseSunset_Equatorial(t *testing.T) {
 	if event.Rise.IsZero() {
 		t.Fatal("expected non-zero Rise")
 	}
+
 	if event.Set.IsZero() {
 		t.Fatal("expected non-zero Set")
 	}
@@ -76,6 +79,7 @@ func TestSunriseSunset_Equatorial(t *testing.T) {
 
 	// Sunrise and sunset should be roughly 12 hours apart.
 	gap := event.Set.Sub(event.Rise)
+
 	wantGap := 12 * time.Hour
 	if diff := gap - wantGap; diff < -30*time.Minute || diff > 30*time.Minute {
 		t.Errorf("Set-Rise = %v, want ~12h (±30m)", gap)
@@ -92,6 +96,7 @@ func TestSunriseSunset_SouthernHemisphere(t *testing.T) {
 	date := time.Date(2024, 6, 21, 0, 0, 0, 0, loc)
 
 	obs := mustObserver(t, -33.87, 151.21, loc)
+
 	event, err := SunriseSunset(date, obs)
 	if err != nil {
 		t.Fatalf("SunriseSunset() returned error: %v", err)
@@ -100,6 +105,7 @@ func TestSunriseSunset_SouthernHemisphere(t *testing.T) {
 	if event.Rise.IsZero() {
 		t.Fatal("expected non-zero Rise")
 	}
+
 	if event.Set.IsZero() {
 		t.Fatal("expected non-zero Set")
 	}
@@ -108,6 +114,7 @@ func TestSunriseSunset_SouthernHemisphere(t *testing.T) {
 	if event.Duration >= 11*time.Hour {
 		t.Errorf("Duration = %v, want < 11h for Sydney winter solstice", event.Duration)
 	}
+
 	if event.Duration <= 8*time.Hour {
 		t.Errorf("Duration = %v, want > 8h (sanity check)", event.Duration)
 	}
@@ -155,6 +162,7 @@ func TestSolarPosition(t *testing.T) {
 	if ra > 180 {
 		ra -= 360
 	}
+
 	if math.Abs(ra) > 5 {
 		t.Errorf("solarPosition() RA = %f°, want near 0° (±5°) at vernal equinox", pos.ra)
 	}
@@ -172,6 +180,7 @@ func TestSolarPosition_SummerSolstice(t *testing.T) {
 	if math.Abs(pos.ra-90) > 2 {
 		t.Errorf("solarPosition() RA = %f°, want near 90° (±2°) at summer solstice", pos.ra)
 	}
+
 	if math.Abs(pos.dec-23.44) > 1 {
 		t.Errorf("solarPosition() Dec = %f°, want near 23.44° (±1°) at summer solstice", pos.dec)
 	}
@@ -229,6 +238,7 @@ func TestCivilTwilight(t *testing.T) {
 	tolerance := 5 * time.Minute
 
 	obs := mustObserver(t, 40.7128, -74.006, nyc)
+
 	event, err := CivilTwilight(date, obs)
 	if err != nil {
 		t.Fatalf("CivilTwilight() returned error: %v", err)
@@ -260,6 +270,7 @@ func TestNauticalTwilight(t *testing.T) {
 	date := time.Date(2024, 3, 20, 0, 0, 0, 0, nyc)
 
 	obs := mustObserver(t, 40.7128, -74.006, nyc)
+
 	civil, err := CivilTwilight(date, obs)
 	if err != nil {
 		t.Fatalf("CivilTwilight() returned error: %v", err)
@@ -294,6 +305,7 @@ func TestAstronomicalTwilight(t *testing.T) {
 	date := time.Date(2024, 3, 20, 0, 0, 0, 0, nyc)
 
 	obs := mustObserver(t, 40.7128, -74.006, nyc)
+
 	nautical, err := NauticalTwilight(date, obs)
 	if err != nil {
 		t.Fatalf("NauticalTwilight() returned error: %v", err)
@@ -330,6 +342,7 @@ func TestTwilight_Equatorial(t *testing.T) {
 	date := time.Date(2024, 3, 20, 0, 0, 0, 0, loc)
 
 	obs := mustObserver(t, -0.18, -78.47, loc)
+
 	civil, err := CivilTwilight(date, obs)
 	if err != nil {
 		t.Fatalf("CivilTwilight() returned error: %v", err)
@@ -338,6 +351,7 @@ func TestTwilight_Equatorial(t *testing.T) {
 	if civil.Dusk.IsZero() {
 		t.Error("expected non-zero civil twilight Dusk")
 	}
+
 	if civil.Dawn.IsZero() {
 		t.Error("expected non-zero civil twilight Dawn")
 	}
@@ -347,6 +361,7 @@ func TestTwilight_Equatorial(t *testing.T) {
 	if civil.NightDuration >= 12*time.Hour {
 		t.Errorf("civil twilight NightDuration = %v, want < 12h near equator", civil.NightDuration)
 	}
+
 	if civil.NightDuration <= 0 {
 		t.Errorf("civil twilight NightDuration = %v, want > 0", civil.NightDuration)
 	}
