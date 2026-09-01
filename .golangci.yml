@@ -8,7 +8,8 @@ version: "2"
 linters:
   default: all
   disable:
-    - exhaustruct # partial struct inits in tests are intentional
+    - exhaustruct # deprecated; superseded by exhaustruct_v5
+    - exhaustruct_v5 # partial struct inits in tests are intentional
     - mnd # the codebase transcribes Meeus algorithm coefficients (magic numbers by nature)
     - goconst # repeated domain/test literals (phase names, timezone strings) aren't worth extracting
     - varnamelen # Meeus convention short names (T, M, J, D, F...) are idiomatic here
