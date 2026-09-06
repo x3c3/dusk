@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/philoserf/dusk/v3"
+	"github.com/philoserf/dusk/v4"
 )
 
 // dateLayout is the only date format the CLI accepts, on input and output.

@@ -1,17 +1,22 @@
 # Changelog
 
-## v3.1.0 — 2026-09-06
+## v4.0.0 — 2026-09-06
 
-No breaking changes. The library's exported API is identical to v3.0.0; this
-release adds a command, fixes reporting bugs in it, and corrects a misleading
-doc comment.
+Adds `cmd/dusk`, and completes the API shrink that v3 began. The astronomy is
+unchanged: every calculation returns exactly what v3.0.0 returned.
+
+### Breaking changes
+
+- **Module path** changed from `github.com/philoserf/dusk/v3` to `github.com/philoserf/dusk/v4`
+- **Result types no longer implement `fmt.Stringer`** — `SunEvent`, `MoonEvent`, `TwilightEvent` and `LunarPhaseInfo` lose their `String()` methods. Nothing in the library or the reference CLI consumed them; `cmd/dusk` formats every field itself. Callers who printed a result value directly should format the fields they want. `Observer.String()` is unaffected.
+- **`LunarPhaseInfo.Angle` removed** — the Meeus phase angle was published but unused, including by the reference CLI. `Illumination` is derived from it and is unchanged; callers needing the angle can recover it as `acos(2*Illumination/100 - 1)`, signed by `Waxing`.
 
 ### Added
 
 - **`cmd/dusk`, a reference CLI.** Reports a full day — sun, three twilight bands, moon, phase — for one place and date, as text or JSON. It calls every exported function, and every documented edge case is reachable with a single flag.
 
   ```bash
-  go install github.com/philoserf/dusk/v3/cmd/dusk@latest
+  go install github.com/philoserf/dusk/v4/cmd/dusk@latest
   dusk --lat 42.9634 --lon -85.6681 --tz America/Detroit --date 2025-06-21
   ```
 
@@ -37,6 +42,7 @@ doc comment.
 - Coverage is held by a ratchet — uncovered statements per package, checked in, diffed both ways — replacing an 80% threshold that had permitted 46 uncovered statements to appear silently. CI runs exactly `task`.
 - Go directive raised to 1.27; golangci-lint moved to `default: all`.
 - Removed ~158 lines of tests that exercised the standard library rather than the astronomy, and inlined three single-use helpers (#58).
+- `.golangci.yml`'s depguard allow-list and `coverage.ratchet`'s keys both name the module path; both were updated with the bump. Uncovered-statement counts are unchanged at 10 and 19.
 
 ## v3.0.0 — 2026-03-30
 

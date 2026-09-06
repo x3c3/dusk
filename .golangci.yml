@@ -48,7 +48,7 @@ linters:
           list-mode: strict
           allow:
             - $gostd
-            - github.com/philoserf/dusk/v3
+            - github.com/philoserf/dusk/v4
     cyclop:
       max-complexity: 15
     errcheck:

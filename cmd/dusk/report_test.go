@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/philoserf/dusk/v3"
+	"github.com/philoserf/dusk/v4"
 )
 
 // testObserver returns a mid-latitude observer for deterministic tests.

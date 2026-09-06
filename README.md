@@ -1,14 +1,14 @@
 # dusk
 
 [![CI](https://github.com/philoserf/dusk/actions/workflows/ci.yml/badge.svg)](https://github.com/philoserf/dusk/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/philoserf/dusk/v3.svg)](https://pkg.go.dev/github.com/philoserf/dusk/v3)
+[![Go Reference](https://pkg.go.dev/badge/github.com/philoserf/dusk/v4.svg)](https://pkg.go.dev/github.com/philoserf/dusk/v4)
 
 A single, zero-dependency Go package for astronomical calculations — sunrise/sunset, moonrise/moonset, twilight, and lunar phase — based on Meeus's _Astronomical Algorithms_.
 
 ## Install
 
 ```bash
-go get github.com/philoserf/dusk/v3
+go get github.com/philoserf/dusk/v4
 ```
 
 ## Command line
@@ -23,7 +23,7 @@ twilight table's dawn column stops running backwards, and a moonset belonging to
 previous night's rise stops appearing above the moonrise it precedes.
 
 ```bash
-go install github.com/philoserf/dusk/v3/cmd/dusk@latest
+go install github.com/philoserf/dusk/v4/cmd/dusk@latest
 
 dusk --lat 42.9634 --lon -85.6681 --tz America/Detroit --date 2025-06-21
 dusk --lat 69.6492 --lon 18.9553 --tz Europe/Oslo --date 2025-12-21   # polar night
@@ -74,7 +74,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/philoserf/dusk/v3"
+	"github.com/philoserf/dusk/v4"
 )
 
 func main() {
@@ -142,16 +142,13 @@ default:
 
 ### Lunar phase
 
-All result types implement `fmt.Stringer`. Printing a `LunarPhaseInfo` value directly produces output like `Waxing Gibbous 67.3% (day 10.1)`:
-
 ```go
 phase, err := dusk.LunarPhase(time.Date(2024, 1, 18, 3, 0, 0, 0, time.UTC))
 if err != nil {
 	log.Fatal(err)
 }
 
-fmt.Println(phase) // e.g., "Waxing Gibbous 67.3% (day 10.1)"
-fmt.Printf("Illumination: %.1f%%  Waxing: %t\n", phase.Illumination, phase.Waxing)
+fmt.Printf("%s — illumination %.1f%%, waxing: %t\n", phase.Name, phase.Illumination, phase.Waxing)
 ```
 
 ### Civil twilight
@@ -232,12 +229,12 @@ if errors.Is(err, dusk.ErrNeverRises) {
 
 ### Result types
 
-All result types implement `fmt.Stringer`:
+Plain data; format them however you need. `Observer` implements `fmt.Stringer`, the result types do not.
 
 - `SunEvent` — `Rise`, `Noon`, `Set` times and `Duration` (daylight)
 - `MoonEvent` — `Rise`, `Set` times and `AboveHorizon`
 - `TwilightEvent` — `Dusk`, `Dawn` times and `NightDuration` (overnight darkness)
-- `LunarPhaseInfo` — `Illumination`, `Elongation`, `Angle`, `DaysApprox`, `Waxing`, `Name`
+- `LunarPhaseInfo` — `Illumination`, `Elongation`, `DaysApprox`, `Waxing`, `Name`
 
 ### Errors
 

@@ -1,5 +1,5 @@
 # Uncovered statements per package. The gate fails in both directions:
 # a number that rises is lost coverage, one that falls is coverage to lock in.
 # Regenerate with: task ratchet:update
-github.com/philoserf/dusk/v3 10
-github.com/philoserf/dusk/v3/cmd/dusk 19
+github.com/philoserf/dusk/v4 10
+github.com/philoserf/dusk/v4/cmd/dusk 19

@@ -121,7 +121,6 @@ func LunarPhase(date time.Time) (LunarPhaseInfo, error) {
 	return LunarPhaseInfo{
 		Illumination: K,
 		Elongation:   d,
-		Angle:        PA,
 		DaysApprox:   days,
 		Waxing:       d < 180,
 		Name:         lunarPhaseName(d),
