@@ -69,7 +69,8 @@ func ExampleSunriseSunset_polar() {
 }
 
 func ExampleSunriseSunset() {
-	loc, err := time.LoadLocation("America/Chicago")
+	// Grand Rapids, Michigan, which keeps Eastern time.
+	loc, err := time.LoadLocation("America/Detroit")
 	if err != nil {
 		fmt.Println("error:", err)
 
@@ -95,8 +96,8 @@ func ExampleSunriseSunset() {
 	fmt.Printf("Sunrise: %s\n", sun.Rise.Format("15:04"))
 	fmt.Printf("Sunset:  %s\n", sun.Set.Format("15:04"))
 	// Output:
-	// Sunrise: 05:03
-	// Sunset:  20:25
+	// Sunrise: 06:03
+	// Sunset:  21:25
 }
 
 func ExampleLunarPhase() {

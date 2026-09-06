@@ -78,7 +78,8 @@ import (
 )
 
 func main() {
-	loc, err := time.LoadLocation("America/Chicago")
+	// Grand Rapids, Michigan, which keeps Eastern time.
+	loc, err := time.LoadLocation("America/Detroit")
 	if err != nil {
 		log.Fatal(err)
 	}
