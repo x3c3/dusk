@@ -112,9 +112,6 @@ var (
 	}
 )
 
-// solarNote is the prose for a sun that never crosses the horizon.
-func solarNote(state horizonState) string { return solarNotes[state] }
-
 // twilightNote is the prose for a twilight band that never arrives, or that
 // never lifts.
 func twilightNote(state horizonState, degrees int) string {
@@ -170,7 +167,7 @@ func sunReport(date time.Time, obs dusk.Observer) (SunReport, error) {
 			return SunReport{}, fmt.Errorf("sunrise/sunset: %w", err)
 		}
 
-		return SunReport{Note: solarNote(state), state: state}, nil
+		return SunReport{Note: solarNotes[state], state: state}, nil
 	}
 
 	return SunReport{

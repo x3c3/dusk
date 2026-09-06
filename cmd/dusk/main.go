@@ -108,16 +108,11 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	return emit(stdout, day, *asJSON)
-}
-
-// emit writes the report in the requested format.
-func emit(w io.Writer, day Report, asJSON bool) error {
-	if asJSON {
-		return renderJSON(w, day)
+	if *asJSON {
+		return renderJSON(stdout, day)
 	}
 
-	return renderText(w, day)
+	return renderText(stdout, day)
 }
 
 // setFlags reports which flags were actually given, so that an explicit
@@ -138,11 +133,6 @@ func observerFromFlags(lat, lon float64, tz string, set map[string]bool) (dusk.O
 		return dusk.Observer{}, fmt.Errorf("%w: --lat, --lon, and --tz are all required", errUsage)
 	}
 
-	return newObserver(lat, lon, tz)
-}
-
-// newObserver loads the timezone and validates the coordinates.
-func newObserver(lat, lon float64, tz string) (dusk.Observer, error) {
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
 		return dusk.Observer{}, fmt.Errorf("%w: unknown timezone %q: %w", errUsage, tz, err)

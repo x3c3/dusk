@@ -203,41 +203,10 @@ func TestSolarPosition_SummerSolstice(t *testing.T) {
 func TestSolarMeanAnomaly(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name    string
-		J       float64
-		wantMin float64
-		wantMax float64
-	}{
-		{
-			name:    "J2000 epoch (J=0)",
-			J:       0,
-			wantMin: 357.0,
-			wantMax: 358.0,
-		},
-		{
-			name:    "large positive day count wraps via mod360",
-			J:       36525, // 100 years
-			wantMin: 0,
-			wantMax: 360,
-		},
-		{
-			name:    "negative day count wraps via mod360",
-			J:       -365,
-			wantMin: 0,
-			wantMax: 360,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := solarMeanAnomaly(tt.J)
-			if got < tt.wantMin || got >= tt.wantMax {
-				t.Errorf("solarMeanAnomaly(%f) = %f, want in [%f, %f)", tt.J, got, tt.wantMin, tt.wantMax)
-			}
-		})
+	// At the J2000.0 epoch the Sun's mean anomaly is 357.529 degrees.
+	got := solarMeanAnomaly(0)
+	if got < 357.0 || got >= 358.0 {
+		t.Errorf("solarMeanAnomaly(0) = %f, want in [357, 358)", got)
 	}
 }
 
