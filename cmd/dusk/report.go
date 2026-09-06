@@ -83,9 +83,6 @@ type MoonReport struct {
 	Rise         time.Time `json:"rise,omitzero"`
 	Set          time.Time `json:"set,omitzero"`
 	AboveHorizon bool      `json:"aboveHorizon"`
-	Note         string    `json:"note,omitempty"`
-
-	state horizonState
 }
 
 // PhaseReport holds the lunar phase.
@@ -110,21 +107,13 @@ var (
 	// mean at the horizon: staying above the angle means the night never gets
 	// that dark, staying below it means the day never gets that light.
 	twilightNotes = map[horizonState]string{
-		stateStaysAbove: "never gets this dark - the sun stays above %d degrees",
+		stateStaysAbove: "never gets this dark tonight - the sun stays above %d degrees",
 		stateStaysBelow: "this dark all day - the sun stays below %d degrees",
-	}
-
-	lunarNotes = map[horizonState]string{
-		stateStaysAbove: "the Moon stays above the horizon today",
-		stateStaysBelow: "the Moon stays below the horizon today",
 	}
 )
 
 // solarNote is the prose for a sun that never crosses the horizon.
 func solarNote(state horizonState) string { return solarNotes[state] }
-
-// lunarNote is the prose for a Moon that never crosses the horizon.
-func lunarNote(state horizonState) string { return lunarNotes[state] }
 
 // twilightNote is the prose for a twilight band that never arrives, or that
 // never lifts.
@@ -220,14 +209,20 @@ func twilightReports(date time.Time, obs dusk.Observer) ([]TwilightReport, error
 	for _, band := range twilightBands {
 		report := TwilightReport{Name: band.name, degrees: band.degrees}
 
-		morning, state, err := callTwilight(band.fn, yesterday, obs, band.name)
+		// Yesterday's call supplies this morning's dawn and nothing else. Its
+		// state is discarded: on a polar transition day it describes a night
+		// the report is not about, and letting it stand printed "twilight
+		// never arrives" above tonight's real dusk time.
+		morning, _, err := callTwilight(band.fn, yesterday, obs, band.name)
 		if err != nil {
 			return nil, err
 		}
 
 		report.Dawn = toSecond(morning.Dawn)
-		report.state = state
 
+		// Tonight's geometry is the one the report is about. When it is not a
+		// crossing the event is the zero value, so Dusk and Night fall out
+		// empty without being cleared.
 		evening, state, err := callTwilight(band.fn, date, obs, band.name)
 		if err != nil {
 			return nil, err
@@ -235,15 +230,8 @@ func twilightReports(date time.Time, obs dusk.Observer) ([]TwilightReport, error
 
 		report.Dusk = toSecond(evening.Dusk)
 		report.Night = shortDuration(evening.NightDuration)
-
-		// Tonight's geometry is the one the report is about; yesterday's call
-		// only ever supplies this morning's dawn.
-		if state != stateCrosses {
-			report.state = state
-			report.Night = ""
-		}
-
-		report.Note = twilightNote(report.state, band.degrees)
+		report.state = state
+		report.Note = twilightNote(state, band.degrees)
 
 		reports = append(reports, report)
 	}
@@ -278,12 +266,7 @@ func callTwilight(
 func moonReport(date time.Time, obs dusk.Observer) (MoonReport, error) {
 	event, err := dusk.MoonriseMoonset(date, obs)
 	if err != nil {
-		state, ok := stateOf(err)
-		if !ok {
-			return MoonReport{}, fmt.Errorf("moonrise/moonset: %w", err)
-		}
-
-		return MoonReport{Note: lunarNote(state), state: state}, nil
+		return MoonReport{}, fmt.Errorf("moonrise/moonset: %w", err)
 	}
 
 	return MoonReport{

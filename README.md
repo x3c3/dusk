@@ -52,7 +52,7 @@ Sunday 21 December 2025
   16:56   Astronomical dusk
 
   Dark       13h33m  (astronomical, tonight)
-  Moon       New Moon, 1%
+  Moon       New Moon, 2%
 ```
 
 Polar geometry is a result, not a failure: the report renders and exits 0. A misuse of

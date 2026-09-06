@@ -162,12 +162,18 @@ func parseDate(arg string, loc *time.Location) (time.Time, error) {
 		return time.Now().In(loc), nil
 	}
 
-	date, err := time.ParseInLocation(dateLayout, arg, loc)
+	// Parsed without a zone, then anchored at midday in the observer's. A few
+	// zones move their clocks at midnight - America/Santiago in September,
+	// America/Havana in March - and there 00:00 does not exist, so
+	// ParseInLocation resolves it to 23:00 the day before and the whole report
+	// silently comes out for the previous day. Midday exists everywhere; the
+	// library ignores the time of day and keeps only the calendar date.
+	day, err := time.Parse(dateLayout, arg)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("%w: --date %q is not YYYY-MM-DD: %w", errUsage, arg, err)
 	}
 
-	return date, nil
+	return time.Date(day.Year(), day.Month(), day.Day(), 12, 0, 0, 0, loc), nil
 }
 
 // writeVersion reports the build.

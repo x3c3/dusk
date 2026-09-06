@@ -184,9 +184,13 @@ func twilightConditions(bands []TwilightReport) []string {
 		}
 	}
 
+	// Scoped to tonight, because a band's state is tonight's. On a transition
+	// day this morning's dawn came from yesterday's call and is real, so an
+	// unqualified "never drops 6° below the horizon" would sit directly above
+	// the dawn that disproves it.
 	if len(tooLight) > 0 {
 		lines = append(lines, fmt.Sprintf(
-			"The sun never drops %d° below the horizon, so %s twilight never arrives.",
+			"The sun never drops %d° below the horizon tonight, so %s twilight never arrives.",
 			lightest, join(tooLight),
 		))
 	}
@@ -204,16 +208,17 @@ func twilightConditions(bands []TwilightReport) []string {
 // moonCondition explains a moon that does not cross, and flags a moon that is
 // already up at midnight - which is why a moonset can precede a moonrise.
 func moonCondition(moon MoonReport) string {
-	switch moon.state {
-	case stateStaysAbove:
-		return "The moon stays above the horizon all day."
-	case stateStaysBelow:
-		return "The moon stays below the horizon all day."
-	case stateCrosses:
-	}
-
 	switch {
 	case moon.Rise.IsZero() && moon.Set.IsZero():
+		// A lunar day runs about 24h50m, so at high latitudes the Moon can be
+		// up for the whole calendar day without crossing. Unlike the Sun, the
+		// library reports this with AboveHorizon rather than a sentinel error
+		// - MoonriseMoonset never returns one - and without consulting it the
+		// report reads as though the Moon were absent.
+		if moon.AboveHorizon {
+			return "The moon stays above the horizon all day."
+		}
+
 		return "The moon neither rises nor sets today."
 	case moon.Rise.IsZero():
 		return "The moon is already up at midnight and does not rise again today."

@@ -2,4 +2,4 @@
 # a number that rises is lost coverage, one that falls is coverage to lock in.
 # Regenerate with: task ratchet:update
 github.com/philoserf/dusk/v3 10
-github.com/philoserf/dusk/v3/cmd/dusk 22
+github.com/philoserf/dusk/v3/cmd/dusk 19

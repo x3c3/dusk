@@ -126,9 +126,6 @@ func TestNotesDistinguishStates(t *testing.T) {
 		{"twilight stays above", twilightNote(stateStaysAbove, 6), "never gets this dark"},
 		{"twilight stays below", twilightNote(stateStaysBelow, 6), "this dark all day"},
 		{"twilight crosses", twilightNote(stateCrosses, 6), ""},
-		{"lunar stays above", lunarNote(stateStaysAbove), "stays above"},
-		{"lunar stays below", lunarNote(stateStaysBelow), "stays below"},
-		{"lunar crosses", lunarNote(stateCrosses), ""},
 	}
 
 	for _, tt := range tests {

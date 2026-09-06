@@ -208,19 +208,19 @@ func TestRenderTextConditions(t *testing.T) {
 			want: []string{"already up at midnight", "precedes its moonrise"},
 		},
 		{
-			name:   "a moon that never crosses",
-			mutate: func(r *Report) { r.Moon = MoonReport{state: stateStaysAbove} },
-			want:   []string{"moon stays above the horizon all day"},
-		},
-		{
-			name:   "a moon that never appears",
-			mutate: func(r *Report) { r.Moon = MoonReport{state: stateStaysBelow} },
-			want:   []string{"moon stays below the horizon all day"},
-		},
-		{
 			name:   "a moon that neither rises nor sets",
 			mutate: func(r *Report) { r.Moon = MoonReport{} },
 			want:   []string{"neither rises nor sets today"},
+		},
+		{
+			// A lunar day is about 24h50m, so the Moon can be up for a whole
+			// calendar day without crossing. The library says so with
+			// AboveHorizon rather than a sentinel, and reading it as an absent
+			// Moon loses the one fact the report had.
+			name:   "a moon up all day is not an absent moon",
+			mutate: func(r *Report) { r.Moon = MoonReport{AboveHorizon: true} },
+			want:   []string{"moon stays above the horizon all day"},
+			absent: []string{"neither rises nor sets"},
 		},
 		{
 			name: "an ordinary moon needs no explanation",
