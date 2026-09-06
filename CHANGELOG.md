@@ -1,5 +1,43 @@
 # Changelog
 
+## v3.1.0 — 2026-09-06
+
+No breaking changes. The library's exported API is identical to v3.0.0; this
+release adds a command, fixes reporting bugs in it, and corrects a misleading
+doc comment.
+
+### Added
+
+- **`cmd/dusk`, a reference CLI.** Reports a full day — sun, three twilight bands, moon, phase — for one place and date, as text or JSON. It calls every exported function, and every documented edge case is reachable with a single flag.
+
+  ```bash
+  go install github.com/philoserf/dusk/v3/cmd/dusk@latest
+  dusk --lat 42.9634 --lon -85.6681 --tz America/Detroit --date 2025-06-21
+  ```
+
+  Events are rendered in **clock order** rather than grouped by the call that produced them, so a twilight table's dawn column no longer runs backwards and a moonset belonging to the previous night's rise no longer appears above the moonrise it precedes. Polar geometry is a result, not a failure: the report renders and exits 0. Only a misused command line and an out-of-range date fail.
+
+### Bug fixes
+
+- **Twilight bands no longer report yesterday's geometry.** A band's state was seeded from yesterday's call and overwritten only when tonight also failed, so on a polar transition day the report could claim "civil, nautical and astronomical twilight never arrives" directly above a real civil dusk (65°N, 2025-07-28, civil dusk 01:05, civil night 48m).
+- **`--date` no longer reports the previous day where clocks move at midnight.** `ParseInLocation` anchors at 00:00, which does not exist in `America/Santiago` in September or `America/Havana` in March, and Go resolves it backwards. Dates are now anchored at midday in the observer's zone. This also samples the lunar phase at local noon rather than local midnight.
+- **A Moon above the horizon all day is no longer reported as absent.** `MoonriseMoonset` signals that with zero rise and set plus `AboveHorizon`, not with a sentinel; the text renderer consulted only the times and disagreed with the JSON beside it.
+- Whole-day twilight claims are scoped to tonight, since this morning's dawn comes from a separate call and can be real when tonight's is not.
+
+### Documentation
+
+- `julianDate`'s doc comment claimed `UnixNano` returns 0 outside its range. It does not — the result is undefined and wraps to an arbitrary value. The old wording could invite a maintainer to skip a range check on a new call path (#54).
+- `walkthrough.md` rebuilt against the current source and extended to cover `cmd/dusk`; every snippet is verified executable.
+- `THEORY.md` extended with the reference implementation's theory.
+- Fixed three README examples that built dates with `time.UTC` while passing a non-UTC observer — because the library derives the day via `date.In(obs.loc)`, the sunrise example computed June 20 while claiming the solstice.
+
+### Internal
+
+- `MoonriseMoonset` now calls `lunarPosition` instead of reimplementing it inline twice (#53).
+- Coverage is held by a ratchet — uncovered statements per package, checked in, diffed both ways — replacing an 80% threshold that had permitted 46 uncovered statements to appear silently. CI runs exactly `task`.
+- Go directive raised to 1.27; golangci-lint moved to `default: all`.
+- Removed ~158 lines of tests that exercised the standard library rather than the astronomy, and inlined three single-use helpers (#58).
+
 ## v3.0.0 — 2026-03-30
 
 ### Breaking changes

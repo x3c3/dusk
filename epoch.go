@@ -14,8 +14,10 @@ const (
 // count of days and fractions of day since the beginning of the Julian period.
 //
 // Uses UnixNano internally, which limits the valid range to the int64
-// nanosecond bounds (approximately 1677-09-21 to 2262-04-11). Dates outside
-// this range silently produce incorrect results because UnixNano returns 0.
+// nanosecond bounds (approximately 1677-09-21 to 2262-04-11). UnixNano's
+// result is undefined outside that range: it wraps to an arbitrary value
+// rather than to zero or any recognizable sentinel, so dates outside it
+// silently produce incorrect results.
 // Use [validJulianDateRange] to check before calling.
 func julianDate(t time.Time) float64 {
 	ms := t.UTC().UnixNano() / 1e6
