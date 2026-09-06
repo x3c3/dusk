@@ -11,6 +11,54 @@ A single, zero-dependency Go package for astronomical calculations — sunrise/s
 go get github.com/philoserf/dusk/v3
 ```
 
+## Command line
+
+A reference implementation lives in `cmd/dusk`. It calls every exported function and
+renders the day as one chronological list, so each documented edge case is reachable
+from the command line.
+
+The library returns its results grouped by the call that produced them — sun, three
+twilight bands, moon — but a day is not lived in that order. Sorted by the clock, a
+twilight table's dawn column stops running backwards, and a moonset belonging to the
+previous night's rise stops appearing above the moonrise it precedes.
+
+```bash
+go install github.com/philoserf/dusk/v3/cmd/dusk@latest
+
+dusk --lat 42.9634 --lon -85.6681 --tz America/Detroit --date 2025-06-21
+dusk --lat 69.6492 --lon 18.9553 --tz Europe/Oslo --date 2025-12-21   # polar night
+dusk --lat 69.6492 --lon 18.9553 --tz Europe/Oslo --date 2025-06-21   # midnight sun
+dusk --lat -1.2921 --lon 36.8219 --tz Africa/Nairobi --json
+dusk --version
+```
+
+`--lat`, `--lon`, and `--tz` are all required: a latitude of 0 is the equator rather
+than "unset", and the zone decides which calendar day is meant. `--date` defaults to
+today in that zone.
+
+```text
+Sunday 21 December 2025
+69.6492°N  18.9553°E  ·  Europe/Oslo
+
+  The sun does not rise today (polar night). Twilight still reaches
+  civil depth around midday.
+  The moon neither rises nor sets today.
+
+  06:28   Astronomical dawn
+  07:46   Nautical dawn
+  09:31   Civil dawn
+  13:53   Civil dusk
+  15:37   Nautical dusk
+  16:56   Astronomical dusk
+
+  Dark       13h33m  (astronomical, tonight)
+  Moon       New Moon, 1%
+```
+
+Polar geometry is a result, not a failure: the report renders and exits 0. A misuse of
+the flags and a date outside the library's range both exit 1, told apart by the message
+rather than the status (`usage:` versus `unsupported date:`).
+
 ## Examples
 
 ### Sunrise and sunset
@@ -40,7 +88,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	date := time.Date(2025, 6, 21, 0, 0, 0, 0, time.UTC)
+	date := time.Date(2025, 6, 21, 0, 0, 0, 0, loc)
 
 	sun, err := dusk.SunriseSunset(date, obs)
 	if err != nil {
@@ -120,7 +168,7 @@ if err != nil {
 	log.Fatal(err)
 }
 
-date := time.Date(2025, 6, 21, 0, 0, 0, 0, time.UTC)
+date := time.Date(2025, 6, 21, 0, 0, 0, 0, loc)
 
 tw, err := dusk.CivilTwilight(date, obs)
 if err != nil {
@@ -149,7 +197,7 @@ if err != nil {
 	log.Fatal(err)
 }
 
-midsummer := time.Date(2025, 6, 21, 0, 0, 0, 0, time.UTC)
+midsummer := time.Date(2025, 6, 21, 0, 0, 0, 0, loc)
 
 _, err = dusk.SunriseSunset(midsummer, obs)
 if errors.Is(err, dusk.ErrCircumpolar) {
@@ -202,6 +250,7 @@ All result types implement `fmt.Stringer`:
 ## Conventions
 
 - All angles are in **degrees**.
+- The **calendar day is resolved in the observer's timezone** — functions convert the date with `date.In(observer location)` and ignore the time of day. Build the date with the observer's `*time.Location`, not `time.UTC`, or an observer west of Greenwich silently gets the previous day.
 - Longitude is **east-positive, west-negative** (e.g., New York is -74.006).
 - `Observer` is constructed via `NewObserver`, which validates coordinates and rejects NaN/Inf.
 - Functions that can fail return `error`. Two sentinel errors distinguish polar edge cases: `ErrCircumpolar` and `ErrNeverRises`.

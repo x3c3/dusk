@@ -8,6 +8,8 @@ import (
 )
 
 func TestJulianDate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		time    time.Time
@@ -36,6 +38,8 @@ func TestJulianDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := julianDate(tt.time)
 			if math.Abs(got-tt.want) > tt.epsilon {
 				t.Errorf("julianDate() = %f, want %f (±%f)", got, tt.want, tt.epsilon)
@@ -45,6 +49,8 @@ func TestJulianDate(t *testing.T) {
 }
 
 func TestValidJulianDateRange(t *testing.T) {
+	t.Parallel()
+
 	minValid := time.Unix(0, math.MinInt64).UTC()
 	maxValid := time.Unix(0, math.MaxInt64).UTC()
 
@@ -65,6 +71,8 @@ func TestValidJulianDateRange(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validJulianDateRange(tt.time)
 			if tt.wantErr && !errors.Is(err, ErrDateOutOfRange) {
 				t.Errorf("expected ErrDateOutOfRange, got %v", err)
@@ -78,6 +86,8 @@ func TestValidJulianDateRange(t *testing.T) {
 }
 
 func TestGMST(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		time    time.Time
@@ -109,6 +119,8 @@ func TestGMST(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := greenwichMeanSiderealTime(tt.time)
 			if math.Abs(got-tt.want) > tt.epsilon {
 				t.Errorf("greenwichMeanSiderealTime() = %f, want %f (±%f)", got, tt.want, tt.epsilon)
@@ -118,6 +130,8 @@ func TestGMST(t *testing.T) {
 }
 
 func TestLocalSiderealTime(t *testing.T) {
+	t.Parallel()
+
 	// Meeus p.88: 1987-04-10 00:00 UTC → GMST = 197.693195° = 13.1795h.
 	// At longitude 0°, LST = GMST.
 	tests := []struct {
@@ -152,6 +166,8 @@ func TestLocalSiderealTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := localSiderealTime(tt.time, tt.longitude)
 			if math.Abs(got-tt.want) > tt.epsilon {
 				t.Errorf("localSiderealTime() = %f, want %f (±%f)", got, tt.want, tt.epsilon)
@@ -161,6 +177,8 @@ func TestLocalSiderealTime(t *testing.T) {
 
 	// Verify that longitude shifts LST by the expected amount.
 	t.Run("longitude offset shifts LST", func(t *testing.T) {
+		t.Parallel()
+
 		dt := time.Date(1987, 4, 10, 0, 0, 0, 0, time.UTC)
 		lst0 := localSiderealTime(dt, 0.0)
 		lst15 := localSiderealTime(dt, 15.0)
@@ -177,6 +195,8 @@ func TestLocalSiderealTime(t *testing.T) {
 }
 
 func TestMeanObliquity(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		T       float64
@@ -205,6 +225,8 @@ func TestMeanObliquity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := meanObliquity(tt.T)
 			if math.Abs(got-tt.want) > tt.epsilon {
 				t.Errorf("meanObliquity() = %f, want %f (±%f)", got, tt.want, tt.epsilon)
@@ -214,6 +236,8 @@ func TestMeanObliquity(t *testing.T) {
 }
 
 func TestJulianCentury(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		time    time.Time
@@ -246,6 +270,8 @@ func TestJulianCentury(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := julianCentury(tt.time)
 			if math.Abs(got-tt.want) > tt.epsilon {
 				t.Errorf("julianCentury() = %f, want %f (±%f)", got, tt.want, tt.epsilon)
@@ -255,6 +281,8 @@ func TestJulianCentury(t *testing.T) {
 }
 
 func TestEclipticToEquatorial(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		dt      time.Time
@@ -286,6 +314,8 @@ func TestEclipticToEquatorial(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			eq := eclipticToEquatorial(tt.dt, tt.lon, tt.lat)
 			if math.Abs(eq.ra-tt.wantRA) > tt.eps {
 				t.Errorf("RA = %.4f, want ~%.1f (within %.2f°)", eq.ra, tt.wantRA, tt.eps)
@@ -299,6 +329,8 @@ func TestEclipticToEquatorial(t *testing.T) {
 }
 
 func TestEquatorialToHorizontal(t *testing.T) {
+	t.Parallel()
+
 	// Sirius observed from NYC on 2024-01-16 02:00 UTC (~9pm EST).
 	// Sirius transits ~00:40 local in mid-January; at 9pm it is well up in the SE.
 	dt := time.Date(2024, 1, 16, 2, 0, 0, 0, time.UTC)
@@ -320,6 +352,8 @@ func TestEquatorialToHorizontal(t *testing.T) {
 }
 
 func TestEquatorialToHorizontal_Pole(t *testing.T) {
+	t.Parallel()
+
 	// Observer at the North Pole — cosAltCosLat guard triggers, azimuth defaults to 0.
 	dt := time.Date(2024, 1, 16, 12, 0, 0, 0, time.UTC)
 	obs := mustObserver(t, 90.0, 0, time.UTC)
@@ -336,6 +370,8 @@ func TestEquatorialToHorizontal_Pole(t *testing.T) {
 }
 
 func TestHourAngle(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		ra     float64
@@ -349,6 +385,8 @@ func TestHourAngle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ha := hourAngle(tt.ra, tt.lst)
 			if math.Abs(ha-tt.wantHA) > 1e-9 {
 				t.Errorf("hourAngle(%v, %v) = %v, want %v", tt.ra, tt.lst, ha, tt.wantHA)
@@ -358,6 +396,8 @@ func TestHourAngle(t *testing.T) {
 }
 
 func TestNutationInLongitude(t *testing.T) {
+	t.Parallel()
+
 	// Meeus p. 148, Example 22.a: 1987-04-10 0h TT
 	// Δψ ≈ -3.788" = -0.001052°
 	dt := time.Date(1987, 4, 10, 0, 0, 0, 0, time.UTC)

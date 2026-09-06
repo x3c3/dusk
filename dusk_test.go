@@ -19,6 +19,8 @@ func mustObserver(t *testing.T, lat, lon float64, loc *time.Location) Observer {
 }
 
 func TestNewObserver(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		lat     float64
@@ -43,6 +45,8 @@ func TestNewObserver(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			obs, err := NewObserver(tt.lat, tt.lon, tt.loc)
 			if tt.wantErr {
 				if err == nil {
@@ -62,24 +66,31 @@ func TestNewObserver(t *testing.T) {
 }
 
 func TestZeroObserverReturnsError(t *testing.T) {
+	t.Parallel()
+
 	var zero Observer
 
 	date := time.Date(2024, 3, 20, 0, 0, 0, 0, time.UTC)
 
-	if _, err := SunriseSunset(date, zero); err == nil {
+	_, err := SunriseSunset(date, zero)
+	if err == nil {
 		t.Error("SunriseSunset: expected error for zero Observer")
 	}
 
-	if _, err := CivilTwilight(date, zero); err == nil {
+	_, err = CivilTwilight(date, zero)
+	if err == nil {
 		t.Error("CivilTwilight: expected error for zero Observer")
 	}
 
-	if _, err := MoonriseMoonset(date, zero); err == nil {
+	_, err = MoonriseMoonset(date, zero)
+	if err == nil {
 		t.Error("MoonriseMoonset: expected error for zero Observer")
 	}
 }
 
 func TestSunEventString(t *testing.T) {
+	t.Parallel()
+
 	loc := time.FixedZone("TEST", -5*3600)
 	s := SunEvent{
 		Rise:     time.Date(2024, 1, 15, 12, 1, 0, 0, time.UTC).In(loc),
@@ -95,6 +106,8 @@ func TestSunEventString(t *testing.T) {
 }
 
 func TestSunEventString_Zero(t *testing.T) {
+	t.Parallel()
+
 	s := SunEvent{}
 
 	want := "Rise=--:-- Noon=--:-- Set=--:-- Duration=0s"
@@ -104,6 +117,8 @@ func TestSunEventString_Zero(t *testing.T) {
 }
 
 func TestMoonEventString(t *testing.T) {
+	t.Parallel()
+
 	loc := time.FixedZone("TEST", 0)
 	m := MoonEvent{
 		Rise: time.Date(2024, 1, 15, 8, 15, 0, 0, loc),
@@ -117,6 +132,8 @@ func TestMoonEventString(t *testing.T) {
 }
 
 func TestMoonEventString_AboveHorizon(t *testing.T) {
+	t.Parallel()
+
 	loc := time.FixedZone("TEST", 0)
 	m := MoonEvent{
 		Rise:         time.Date(2024, 1, 15, 8, 15, 0, 0, loc),
@@ -131,6 +148,8 @@ func TestMoonEventString_AboveHorizon(t *testing.T) {
 }
 
 func TestMoonEventString_Zero(t *testing.T) {
+	t.Parallel()
+
 	m := MoonEvent{}
 
 	want := "Rise=--:-- Set=--:-- AboveHorizon=false"
@@ -140,6 +159,8 @@ func TestMoonEventString_Zero(t *testing.T) {
 }
 
 func TestLunarPhaseInfoString(t *testing.T) {
+	t.Parallel()
+
 	l := LunarPhaseInfo{
 		Illumination: 75.3,
 		DaysApprox:   11.2,
@@ -153,6 +174,8 @@ func TestLunarPhaseInfoString(t *testing.T) {
 }
 
 func TestLunarPhaseInfoString_Zero(t *testing.T) {
+	t.Parallel()
+
 	l := LunarPhaseInfo{}
 
 	want := "0.0% (day 0.0)"
@@ -162,6 +185,8 @@ func TestLunarPhaseInfoString_Zero(t *testing.T) {
 }
 
 func TestTwilightEventString(t *testing.T) {
+	t.Parallel()
+
 	loc := time.FixedZone("TEST", 0)
 	tw := TwilightEvent{
 		Dusk:          time.Date(2024, 1, 15, 18, 30, 0, 0, loc),
@@ -176,6 +201,8 @@ func TestTwilightEventString(t *testing.T) {
 }
 
 func TestTwilightEventString_Zero(t *testing.T) {
+	t.Parallel()
+
 	tw := TwilightEvent{}
 
 	want := "Dusk=--:-- Dawn=--:-- NightDuration=0s"

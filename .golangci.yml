@@ -8,16 +8,39 @@ version: "2"
 linters:
   default: all
   disable:
-    - exhaustruct # deprecated; superseded by exhaustruct_v5
-    - exhaustruct_v5 # partial struct inits in tests are intentional
-    - mnd # the codebase transcribes Meeus algorithm coefficients (magic numbers by nature)
-    - goconst # repeated domain/test literals (phase names, timezone strings) aren't worth extracting
-    - varnamelen # Meeus convention short names (T, M, J, D, F...) are idiomatic here
-    - gochecknoglobals # Meeus coefficient tables and epoch bounds are intentional package-level data
-    - noinlineerr # `if err := f(); err != nil` is standard Go
-    - paralleltest # ~0 benefit on fast deterministic tests; huge manual churn
-    - wsl # deprecated; superseded by wsl_v5
-    - asciicheck # Meeus notation uses prime (ʹ) for M′ (Moon's mean anomaly) in coefficient table fields
+    # Deprecated and superseded. Each is replaced by a linter that is enabled
+    # and reports nothing, so these three disable no check that is not
+    # already being made.
+    - exhaustruct # replaced by exhaustruct_v5, which is on
+    - wsl # replaced by wsl_v5, which is on
+    - gomodguard # replaced by gomodguard_v2, which is on
+
+    # Everything below was measured rather than assumed, and the count is
+    # part of the reason. A linter added to this list needs the same: a
+    # count, and a reason that survives reading the findings.
+
+    # 46 findings. This package transcribes Meeus's polynomial coefficients:
+    # 1.9148*sin(M) + 0.0200*sin(2M) + 0.0003*sin(3M) is his equation for the
+    # equation of centre, and naming those terms would rename the equation.
+    # They are magic numbers by nature, and the number is the citation.
+    - mnd
+
+    # 43 findings, and the linter takes no settings in this release, so the
+    # choice is all or nothing. Every one is a result struct filled in stages
+    # or a test table naming only the fields it exercises. A zero time.Time
+    # is load-bearing here -- it is how "the event did not occur" is spelled
+    # -- so requiring every field at every literal would bury the design it
+    # is meant to protect.
+    - exhaustruct_v5
+
+    # 7 findings, and the linter takes no settings. Five are immutable tables
+    # -- Meeus's Table 47.A and 47.B coefficients, the epoch bounds, and the
+    # command's twilight bands -- and two are benchmark fixtures. Go has no
+    # const for a slice or a map, so the alternative is an accessor that
+    # clones on every call, in the minute-by-minute moonrise loop, to prevent
+    # a mutation nothing in this module performs.
+    - gochecknoglobals
+
   settings:
     depguard:
       rules:
@@ -28,9 +51,41 @@ linters:
             - github.com/philoserf/dusk/v3
     cyclop:
       max-complexity: 15
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable-all: true
+      disable:
+        # fieldalignment reorders struct fields for memory layout. The event
+        # types are the package's published shape and the coefficient tables
+        # read in Meeus's own order; neither is negotiable for padding.
+        - fieldalignment
+    tagliatelle:
+      case:
+        rules:
+          json: camel # the CLI's JSON output
     gocritic:
       disabled-checks:
         - captLocal # Meeus convention: T (century), M (anomaly), J (day), etc.
+    varnamelen:
+      # 83 findings at the linter's defaults, every one either Meeus's own
+      # notation or an ordinary Go short name. Configured rather than
+      # disabled: the linter still catches a genuinely anonymous name used
+      # far from where it was declared.
+      max-distance: 12
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+      ignore-names:
+        # Meeus notation: mean anomaly, mean elongation, argument of latitude,
+        # Julian day and century, mean longitudes, eccentricity terms, the
+        # altitude of the horizon, the hour angle.
+        [D, E, E2, F, J, L, Lp, M, Mp, Sb, Sl, Sr, T, h0, ha,
+         # This package's coordinate triples and parameter bundles.
+         az, ec, eq, hz, sp, sa, sb, tw, tz,
+         # Ordinary Go: writer, reader, buffer, index, test case, flag set.
+         b, c, d, fs, h, l, m, ok, p, r, s, t, tc, tt, w, x]
+
     nolintlint:
       require-explanation: true
       require-specific: true
@@ -41,11 +96,22 @@ linters:
       - common-false-positives
       - std-error-handling
     rules:
+      # Meeus writes the Moon's mean anomaly as M-prime, and the coefficient
+      # table's field is named for it. Scoped to the one file that carries
+      # the notation rather than switched off repo-wide, so a non-ASCII
+      # identifier anywhere else is still reported. (2 findings.)
+      - path: lunar\.go
+        linters:
+          - asciicheck
+
       # White-box tests are intentional, and table-driven tests trip several
       # linters on their terse, repetitive shape. Relax them in _test.go only.
+      # goconst: 11 findings, every one a repeated literal in a test table
+      # (a timezone name, a date, a flag) and none in code that ships.
       - path: _test\.go
         linters:
           - dupl
+          - goconst
           - funlen
           - gocognit
           - cyclop
@@ -58,7 +124,16 @@ linters:
 formatters:
   enable:
     - gofumpt
+    - goimports
 
   settings:
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
+
+issues:
+  # Show every finding. The defaults cap output per linter and per repeated
+  # message, which on a gate running `default: all` would let a count read
+  # smaller than it is.
+  max-issues-per-linter: 0
+  max-same-issues: 0

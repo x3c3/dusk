@@ -7,6 +7,8 @@ import (
 )
 
 func TestLunarEclipticPosition(t *testing.T) {
+	t.Parallel()
+
 	// Meeus p. 342: 1992-04-12 00:00 UTC
 	dt := time.Date(1992, 4, 12, 0, 0, 0, 0, time.UTC)
 	ec := lunarEclipticPosition(dt)
@@ -24,6 +26,8 @@ func TestLunarEclipticPosition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if math.Abs(tt.got-tt.want) > tt.epsilon {
 				t.Errorf("%s = %f, want %f (±%f)", tt.name, tt.got, tt.want, tt.epsilon)
 			}
@@ -32,6 +36,8 @@ func TestLunarEclipticPosition(t *testing.T) {
 }
 
 func TestLunarPosition(t *testing.T) {
+	t.Parallel()
+
 	// Meeus p. 342: 1992-04-12 00:00 UTC.
 	// Expected equatorial coordinates (nutation-corrected): RA ~134.7°, Dec ~13.8°.
 	dt := time.Date(1992, 4, 12, 0, 0, 0, 0, time.UTC)
@@ -47,6 +53,8 @@ func TestLunarPosition(t *testing.T) {
 }
 
 func TestLunarPhase(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		date       time.Time
@@ -159,6 +167,8 @@ func TestLunarPhase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			p, err := LunarPhase(tt.date)
 			if err != nil {
 				t.Fatalf("LunarPhase() returned error: %v", err)
@@ -191,6 +201,8 @@ func TestLunarPhase(t *testing.T) {
 }
 
 func TestMoonriseMoonset_AboveHorizon(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		lat, lon     float64
@@ -234,6 +246,8 @@ func TestMoonriseMoonset_AboveHorizon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var loc *time.Location
 			if tt.loc == "UTC" {
 				loc = time.UTC
@@ -269,6 +283,8 @@ func TestMoonriseMoonset_AboveHorizon(t *testing.T) {
 }
 
 func TestMoonriseMoonset(t *testing.T) {
+	t.Parallel()
+
 	// NYC 2024-01-15
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {
@@ -308,6 +324,8 @@ func TestMoonriseMoonset(t *testing.T) {
 }
 
 func TestMoonriseMoonset_SouthernHemisphere(t *testing.T) {
+	t.Parallel()
+
 	// Sydney, Australia on 2024-01-15.
 	loc, err := time.LoadLocation("Australia/Sydney")
 	if err != nil {

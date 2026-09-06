@@ -1,47 +1,71 @@
 name: dusk/ci
 
+# CI runs exactly `task` -- the same gate a developer runs locally, with the
+# same deliberately unpinned Go toolchain. When a tool moves and the gate goes
+# red on code nobody touched, that is the signal working: answer the finding,
+# do not pin the tool to silence it.
+#
+# There is no paths-ignore. A gate that skips a documentation-only push is a
+# gate that cannot catch a broken example, and the examples here are compiled.
+
 on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "**.md"
 
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - "**.md"
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  check:
-    name: Check
+  gate:
+    name: Gate
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # The action itself stays pinned by digest; what is deliberately
+      # unpinned is the Go toolchain it installs.
       - name: Go Setup
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: go.mod
+          go-version: stable
 
+      # The official action installs the released binary. `go install` is not
+      # a supported install path for golangci-lint and can produce a build
+      # that behaves differently from the release -- which, on a gate running
+      # `default: all`, would mean CI and a developer's machine disagreeing
+      # about what the rules are.
+      #
+      # install-only, because CI runs exactly `task`, and `task lint` is what
+      # invokes golangci-lint. Letting the action run it too would put a
+      # second invocation in CI with different arguments and a different
+      # working directory -- the one thing the "CI runs exactly `task`" rule
+      # exists to prevent.
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.2
+          version: latest
+          install-only: true
 
-      - name: Go Test
-        run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
-
-      - name: Check coverage threshold
+      # task and nilaway publish no action; `go install` is their supported
+      # path. gofumpt is not installed at all: it runs inside golangci-lint
+      # as a formatter, which is the single definition of formatted this
+      # repository has.
+      - name: Install the rest of the gate's tools
         run: |
-          COVERAGE=$(go tool cover -func=coverage.txt | grep ^total: | awk '{print $3}' | tr -d '%')
-          echo "Total coverage: ${COVERAGE}%"
-          if awk -v cov="$COVERAGE" 'BEGIN { exit (cov < 80 ? 0 : 1) }'; then
-            echo "::error::Coverage ${COVERAGE}% is below 80% threshold"
-            exit 1
-          fi
+          go install github.com/go-task/task/v3/cmd/task@latest
+          go install go.uber.org/nilaway/cmd/nilaway@latest
+
+      # CI runs exactly `task`. Never add a check here that the local gate
+      # does not run, and never add a tool to the gate without also
+      # installing it above.
+      - name: Gate
+        run: task

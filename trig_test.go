@@ -15,6 +15,8 @@ func approxEqual(a, b, eps float64) bool {
 }
 
 func TestSinx(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		deg  float64
@@ -29,6 +31,8 @@ func TestSinx(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sinx(tc.deg)
 			if !approxEqual(got, tc.want, epsTrig) {
 				t.Errorf("sinx(%v) = %v, want %v", tc.deg, got, tc.want)
@@ -38,6 +42,8 @@ func TestSinx(t *testing.T) {
 }
 
 func TestCosx(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		deg  float64
@@ -49,6 +55,8 @@ func TestCosx(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cosx(tc.deg)
 			if !approxEqual(got, tc.want, epsTrig) {
 				t.Errorf("cosx(%v) = %v, want %v", tc.deg, got, tc.want)
@@ -58,6 +66,8 @@ func TestCosx(t *testing.T) {
 }
 
 func TestTanx(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		deg  float64
@@ -68,6 +78,8 @@ func TestTanx(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := tanx(tc.deg)
 			if !approxEqual(got, tc.want, epsTrig) {
 				t.Errorf("tanx(%v) = %v, want %v", tc.deg, got, tc.want)
@@ -77,6 +89,8 @@ func TestTanx(t *testing.T) {
 }
 
 func TestAsinx(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		x    float64
@@ -90,6 +104,8 @@ func TestAsinx(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := asinx(tc.x)
 			if math.IsNaN(got) {
 				t.Fatalf("asinx(%v) = NaN, want %v", tc.x, tc.want)
@@ -103,6 +119,8 @@ func TestAsinx(t *testing.T) {
 }
 
 func TestAcosx(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		x    float64
@@ -116,6 +134,8 @@ func TestAcosx(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := acosx(tc.x)
 			if math.IsNaN(got) {
 				t.Fatalf("acosx(%v) = NaN, want %v", tc.x, tc.want)
@@ -129,6 +149,8 @@ func TestAcosx(t *testing.T) {
 }
 
 func TestAtan2x(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		y, x float64
@@ -140,6 +162,8 @@ func TestAtan2x(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := atan2x(tc.y, tc.x)
 			if !approxEqual(got, tc.want, epsTrig) {
 				t.Errorf("atan2x(%v, %v) = %v, want %v", tc.y, tc.x, got, tc.want)
@@ -149,6 +173,8 @@ func TestAtan2x(t *testing.T) {
 }
 
 func TestSincosx(t *testing.T) {
+	t.Parallel()
+
 	s, c := sincosx(30)
 	wantSin := 0.5
 	wantCos := math.Sqrt(3) / 2
@@ -163,6 +189,8 @@ func TestSincosx(t *testing.T) {
 }
 
 func TestMod360(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		x    float64
@@ -176,6 +204,8 @@ func TestMod360(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := mod360(tc.x)
 			if !approxEqual(got, tc.want, epsMod) {
 				t.Errorf("mod360(%v) = %v, want %v", tc.x, got, tc.want)
@@ -185,6 +215,8 @@ func TestMod360(t *testing.T) {
 }
 
 func TestMod24(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		x    float64
@@ -197,6 +229,8 @@ func TestMod24(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := mod24(tc.x)
 			if !approxEqual(got, tc.want, epsMod) {
 				t.Errorf("mod24(%v) = %v, want %v", tc.x, got, tc.want)

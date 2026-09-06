@@ -8,6 +8,8 @@ import (
 )
 
 func TestSunriseSunset(t *testing.T) {
+	t.Parallel()
+
 	nyc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		t.Fatalf("failed to load timezone: %v", err)
@@ -49,6 +51,8 @@ func TestSunriseSunset(t *testing.T) {
 }
 
 func TestSunriseSunset_Equatorial(t *testing.T) {
+	t.Parallel()
+
 	// Quito, Ecuador (lat≈0°): sunrise and sunset roughly 12h apart year-round.
 	loc, err := time.LoadLocation("America/Guayaquil")
 	if err != nil {
@@ -87,6 +91,8 @@ func TestSunriseSunset_Equatorial(t *testing.T) {
 }
 
 func TestSunriseSunset_SouthernHemisphere(t *testing.T) {
+	t.Parallel()
+
 	// Sydney, Australia: June 21 is winter solstice — short day.
 	loc, err := time.LoadLocation("Australia/Sydney")
 	if err != nil {
@@ -121,6 +127,8 @@ func TestSunriseSunset_SouthernHemisphere(t *testing.T) {
 }
 
 func TestSunriseSunset_PolarDay(t *testing.T) {
+	t.Parallel()
+
 	// Tromsø, Norway (69.65°N) on June 21 — midnight sun, no sunrise/sunset.
 	loc, err := time.LoadLocation("Europe/Oslo")
 	if err != nil {
@@ -137,6 +145,8 @@ func TestSunriseSunset_PolarDay(t *testing.T) {
 }
 
 func TestSunriseSunset_PolarNight(t *testing.T) {
+	t.Parallel()
+
 	// Tromsø, Norway (69.65°N) on December 21 — polar night, no sunrise/sunset.
 	loc, err := time.LoadLocation("Europe/Oslo")
 	if err != nil {
@@ -153,6 +163,8 @@ func TestSunriseSunset_PolarNight(t *testing.T) {
 }
 
 func TestSolarPosition(t *testing.T) {
+	t.Parallel()
+
 	// Near the vernal equinox: RA ~0°, Dec ~0°.
 	dt := time.Date(2024, 3, 20, 12, 0, 0, 0, time.UTC)
 	pos := solarPosition(dt)
@@ -173,6 +185,8 @@ func TestSolarPosition(t *testing.T) {
 }
 
 func TestSolarPosition_SummerSolstice(t *testing.T) {
+	t.Parallel()
+
 	// Summer solstice 2024-06-20: RA ~90°, Dec ~+23.44°.
 	dt := time.Date(2024, 6, 20, 12, 0, 0, 0, time.UTC)
 	pos := solarPosition(dt)
@@ -187,6 +201,8 @@ func TestSolarPosition_SummerSolstice(t *testing.T) {
 }
 
 func TestSolarMeanAnomaly(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		J       float64
@@ -215,6 +231,8 @@ func TestSolarMeanAnomaly(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := solarMeanAnomaly(tt.J)
 			if got < tt.wantMin || got >= tt.wantMax {
 				t.Errorf("solarMeanAnomaly(%f) = %f, want in [%f, %f)", tt.J, got, tt.wantMin, tt.wantMax)
@@ -228,6 +246,8 @@ func TestSolarMeanAnomaly(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCivilTwilight(t *testing.T) {
+	t.Parallel()
+
 	nyc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		t.Fatalf("failed to load timezone: %v", err)
@@ -262,6 +282,8 @@ func TestCivilTwilight(t *testing.T) {
 }
 
 func TestNauticalTwilight(t *testing.T) {
+	t.Parallel()
+
 	nyc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		t.Fatalf("failed to load timezone: %v", err)
@@ -297,6 +319,8 @@ func TestNauticalTwilight(t *testing.T) {
 }
 
 func TestAstronomicalTwilight(t *testing.T) {
+	t.Parallel()
+
 	nyc, err := time.LoadLocation("America/New_York")
 	if err != nil {
 		t.Fatalf("failed to load timezone: %v", err)
@@ -332,6 +356,8 @@ func TestAstronomicalTwilight(t *testing.T) {
 }
 
 func TestTwilight_Equatorial(t *testing.T) {
+	t.Parallel()
+
 	// Quito, Ecuador on 2024-03-20 (equinox).
 	// Near the equator, twilight transitions are the fastest in the world.
 	loc, err := time.LoadLocation("America/Guayaquil")
@@ -370,6 +396,8 @@ func TestTwilight_Equatorial(t *testing.T) {
 }
 
 func TestTwilight_PolarDay(t *testing.T) {
+	t.Parallel()
+
 	// Tromsø, Norway (69.65°N) on June 21 — no astronomical twilight during midnight sun.
 	loc, err := time.LoadLocation("Europe/Oslo")
 	if err != nil {
@@ -386,6 +414,8 @@ func TestTwilight_PolarDay(t *testing.T) {
 }
 
 func TestTwilight_PolarNight(t *testing.T) {
+	t.Parallel()
+
 	// Near North Pole (87°N) on December 21 — deep polar night.
 	// At this latitude the sun is far enough below the horizon that even
 	// astronomical twilight (18° depression) does not occur.
@@ -401,6 +431,8 @@ func TestTwilight_PolarNight(t *testing.T) {
 }
 
 func TestNauticalTwilight_AbsoluteTime(t *testing.T) {
+	t.Parallel()
+
 	// USNO reference: NYC 2024-03-20 nautical twilight dusk ~20:05 EDT, dawn ~05:55 EDT.
 	nyc, err := time.LoadLocation("America/New_York")
 	if err != nil {
@@ -428,6 +460,8 @@ func TestNauticalTwilight_AbsoluteTime(t *testing.T) {
 }
 
 func TestTwilight_PolarTransition(t *testing.T) {
+	t.Parallel()
+
 	// At 75°N, civil twilight succeeds on Nov 25 but fails on Nov 26,
 	// exercising the polar-transition branch in twilight().
 	loc := time.UTC

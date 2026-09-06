@@ -1,0 +1,180 @@
+# The gate. CI runs exactly `task` -- never add a check to CI that this does
+# not run, and never add a tool to the gate without also installing it there.
+#
+# The toolchain is deliberately unpinned. The gate is meant to fail when a
+# tool moves rather than drift behind it, so a red gate on code you did not
+# touch is the signal working. Answer the finding; do not pin a tool or add
+# a linter disable to silence it.
+version: "3"
+
+vars:
+  PROFILE: coverage.out
+  COUNTS: coverage.counts.out
+  RATCHET: coverage.ratchet
+
+  # Uncovered statements per package, read from the raw coverage profile.
+  #
+  # A profile line is "import/path/file.go:span statements executions"; a block
+  # that executed zero times contributes its statement count to its package.
+  # Every package the profile mentions is printed, including those with nothing
+  # uncovered, so a package that stops being tested shows as a changed line
+  # rather than a silent absence.
+  #
+  # A block can appear more than once: under -coverpkg every test binary
+  # instruments every package, so the same statement is reported by each binary
+  # that linked it -- covered by the one whose tests reach it, uncovered by the
+  # rest. Executions are summed per block before anything is called uncovered.
+  # This repository does not use -coverpkg, but the program is the one the
+  # other Go repositories run, and one program is easier to trust than three.
+  #
+  # An integer count, not a percentage, and that is the whole point: a
+  # percentage holds still while a guarded branch adds one covered statement
+  # and one uncovered, and it grows more forgiving as the repository grows.
+  UNCOVERED: >-
+    awk 'NR>1 { split($1,a,":"); n=split(a[1],p,"/"); d=p[1];
+    for (i=2; i<n; i++) d = d "/" p[i];
+    pkg[$1]=d; stmts[$1]=$2; runs[$1]+=$3; seen[d]=1 }
+    END { for (b in runs) if (runs[b]==0) u[pkg[b]] += stmts[b];
+    for (d in seen) print d, u[d]+0 }' {{.PROFILE}} | sort
+
+tasks:
+  default:
+    desc: The whole gate, in the order a failure is cheapest to read
+    cmds:
+      - task: tidy
+      - task: vet
+      - task: lint
+      - task: nilaway
+      - task: test
+      - task: ratchet
+
+  tidy:
+    desc: go.mod and go.sum are current
+    cmds:
+      - go mod tidy -diff
+
+  vet:
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: golangci-lint, which also reports any formatting difference
+    cmds:
+      # First, because a malformed .golangci.yml otherwise surfaces as a
+      # runtime linter error rather than a config error -- an invalid setting
+      # reads as "the linter is broken" and costs a round trip to place.
+      # `default: all` means this config carries real settings for a dozen
+      # linters, so it is the likeliest breakage.
+      - golangci-lint config verify
+      - golangci-lint run ./...
+
+  fix:
+    desc: Apply every autofix the enabled formatters and linters offer
+    # Not part of the gate: `lint` already reports everything this repairs.
+    # Read the diff before committing it; several of these fixers rewrite
+    # code rather than reformat it.
+    cmds:
+      - golangci-lint run ./... --fix
+
+  nilaway:
+    cmds:
+      - nilaway ./...
+
+  test:
+    desc: The suite, with the race detector, writing a coverage profile
+    # Once per invocation: `default` runs the suite and then `ratchet`, which
+    # depends on it. Without this the whole -race suite runs twice on every
+    # gate and every CI run, for one profile that does not change.
+    run: once
+    cmds:
+      - go test -race -covermode=atomic -coverprofile={{.PROFILE}} ./...
+
+  ratchet:
+    desc: Uncovered statements per package have not moved
+    # The check is a diff, so it fails in both directions and on a package
+    # appearing or vanishing: a count that rises is lost coverage, one that
+    # falls is coverage to lock in, and a stale number is a ratchet that has
+    # stopped holding.
+    #
+    # A failure here is often not lost coverage. Blank lines split coverage
+    # blocks, so any reflow by wsl_v5, and any extraction of a helper, moves
+    # these counts without changing what the tests reach. Read the diff first:
+    # if the change was a reflow or a refactor, `task ratchet:update` is the
+    # answer. If it was neither, something stopped being covered.
+    deps: [test]
+    cmds:
+      - |
+        {{.UNCOVERED}} > {{.COUNTS}}
+        grep -v '^#' {{.RATCHET}} | diff - {{.COUNTS}} || {
+          echo "" >&2
+          echo "coverage moved. If that was deliberate: task ratchet:update" >&2
+          exit 1
+        }
+        echo "ratchet holds: $(wc -l < {{.COUNTS}} | tr -d ' ') packages"
+
+  ratchet:update:
+    desc: Record the current uncovered-statement counts
+    deps: [test]
+    cmds:
+      - |
+        {
+          echo "# Uncovered statements per package. The gate fails in both directions:"
+          echo "# a number that rises is lost coverage, one that falls is coverage to lock in."
+          echo "# Regenerate with: task ratchet:update"
+          {{.UNCOVERED}}
+        } > {{.RATCHET}}
+        cat {{.RATCHET}}
+
+  bench:
+    desc: Run the benchmarks
+    cmds:
+      - go test -bench=. -benchmem .
+
+  # Deliberately not part of the gate. `task test` runs each fuzz target's
+  # seed corpus, which costs microseconds and is what keeps a target honest
+  # as the code moves; the fuzzing engine itself is a search, and a search
+  # with a time limit belongs to whoever chose the limit.
+  #
+  # The package is named rather than ./... because -fuzz takes exactly one:
+  # `go test -fuzz` refuses a pattern that matches several, and the targets
+  # all live in the root package.
+  fuzz:
+    desc: Run each fuzz target's engine (default 10s each; FUZZTIME=2m to extend)
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "10s"}}'
+    cmds:
+      - go test -run '^$' -fuzz=FuzzSunriseSunset -fuzztime={{.FUZZTIME}} .
+      - go test -run '^$' -fuzz=FuzzLunarPhase -fuzztime={{.FUZZTIME}} .
+      - go test -run '^$' -fuzz=FuzzMoonriseMoonset -fuzztime={{.FUZZTIME}} .
+
+  build:
+    desc: Build the reference CLI
+    cmds:
+      - go build -o bin/dusk ./cmd/dusk
+
+  run:
+    desc: Run the reference CLI (task run -- --lat 69.6492 --lon 18.9553 --tz Europe/Oslo)
+    cmds:
+      - go run ./cmd/dusk {{.CLI_ARGS}}
+
+  setup:
+    desc: Install the development toolchain
+    cmds:
+      - brew bundle install --file=Brewfile
+      # nilaway publishes no formula; `go install` is its supported path.
+      - go install go.uber.org/nilaway/cmd/nilaway@latest
+
+  deps:check:
+    desc: Verify the toolchain is installed
+    cmds:
+      - brew bundle check --file=Brewfile --verbose
+      - |
+        if ! command -v nilaway >/dev/null 2>&1; then
+          echo "nilaway is missing: run 'task setup'." >&2
+          exit 1
+        fi
+
+  clean:
+    desc: Remove build and coverage artifacts
+    cmds:
+      - rm -rf bin {{.PROFILE}} {{.COUNTS}}

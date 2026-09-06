@@ -35,14 +35,17 @@ func computeSolarParams(date time.Time, lon float64) solarParams {
 // The algorithm follows the NOAA solar calculator method (derived from Meeus,
 // Astronomical Algorithms).
 func SunriseSunset(date time.Time, obs Observer) (SunEvent, error) {
-	if err := validObserver(obs); err != nil {
+	err := validObserver(obs)
+	if err != nil {
 		return SunEvent{}, err
 	}
 
 	localDate := date.In(obs.loc)
 
 	date = time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, time.UTC)
-	if err := validJulianDateRange(date); err != nil {
+
+	err = validJulianDateRange(date)
+	if err != nil {
 		return SunEvent{}, err
 	}
 
@@ -192,14 +195,17 @@ func AstronomicalTwilight(date time.Time, obs Observer) (TwilightEvent, error) {
 // callers needing partial results should compute each boundary separately using
 // the appropriate depression angle and [SunriseSunset]-style hour-angle logic.
 func twilight(date time.Time, obs Observer, depression float64) (TwilightEvent, error) {
-	if err := validObserver(obs); err != nil {
+	err := validObserver(obs)
+	if err != nil {
 		return TwilightEvent{}, err
 	}
 
 	localDate := date.In(obs.loc)
 
 	date = time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, time.UTC)
-	if err := validJulianDateRange(date); err != nil {
+
+	err = validJulianDateRange(date)
+	if err != nil {
 		return TwilightEvent{}, err
 	}
 
@@ -215,7 +221,9 @@ func twilight(date time.Time, obs Observer, depression float64) (TwilightEvent, 
 
 	// Tomorrow's "rise" at this depression = twilight dawn.
 	tomorrow := date.AddDate(0, 0, 1)
-	if err := validJulianDateRange(tomorrow); err != nil {
+
+	err = validJulianDateRange(tomorrow)
+	if err != nil {
 		return TwilightEvent{}, err
 	}
 

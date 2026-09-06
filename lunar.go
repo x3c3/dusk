@@ -90,7 +90,8 @@ func lunarEclipticPosition(t time.Time) ecliptic {
 //
 // An error is returned if the date is out of the valid Julian date range.
 func LunarPhase(date time.Time) (LunarPhaseInfo, error) {
-	if err := validJulianDateRange(date); err != nil {
+	err := validJulianDateRange(date)
+	if err != nil {
 		return LunarPhaseInfo{}, err
 	}
 
@@ -156,11 +157,13 @@ func lunarPosition(t time.Time) equatorial {
 //
 // An error is returned if the date is out of the valid Julian date range.
 func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error) {
-	if err := validObserver(obs); err != nil {
+	err := validObserver(obs)
+	if err != nil {
 		return MoonEvent{}, err
 	}
 
-	if err := validJulianDateRange(date); err != nil {
+	err = validJulianDateRange(date)
+	if err != nil {
 		return MoonEvent{}, err
 	}
 
@@ -170,11 +173,13 @@ func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error) {
 	d := time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, obs.loc).UTC()
 	nextMidnight := time.Date(localDate.Year(), localDate.Month(), localDate.Day()+1, 0, 0, 0, 0, obs.loc).UTC()
 
-	if err := validJulianDateRange(d); err != nil {
+	err = validJulianDateRange(d)
+	if err != nil {
 		return MoonEvent{}, err
 	}
 
-	if err := validJulianDateRange(nextMidnight); err != nil {
+	err = validJulianDateRange(nextMidnight)
+	if err != nil {
 		return MoonEvent{}, err
 	}
 
