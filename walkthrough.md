@@ -29,9 +29,9 @@ wc -l *.go cmd/dusk/*.go | grep -v _test | grep -v '^ *[0-9]* total'
 ```
 
 ```output
-     211 dusk.go
+     166 dusk.go
      228 epoch.go
-     441 lunar.go
+     440 lunar.go
      244 solar.go
       44 trig.go
      215 cmd/dusk/main.go
@@ -500,13 +500,13 @@ type TwilightEvent struct {
 type LunarPhaseInfo struct {
 	Illumination float64 // percentage 0-100
 	Elongation   float64 // degrees 0-360
-	Angle        float64 // phase angle in degrees (may be negative per Meeus formula)
 	DaysApprox   float64 // rough days into lunation (linear estimate from elongation)
 	Waxing       bool    // true from New Moon to Full Moon (elongation 0-180)
 	Name         string  // "New Moon", "Waxing Crescent", etc.
 }
 
 // equatorial represents right ascension and declination in degrees.
+// Used internally for coordinate conversions.
 ```
 
 A **zero `time.Time`** means "this did not happen today" — the Moon rises but
@@ -829,7 +829,6 @@ sed -n '283,296p' lunar.go && echo '  ...' && echo "tableLongDist: $(grep -c '^\
 ```
 
 ```output
-// Meeus Table 47.B — Periodic terms for the latitude (Σb) of the Moon.
 //
 // See Meeus, Astronomical Algorithms, p. 341.
 type lunarLatCoeff struct{ D, M, Mʹ, F, Σb float64 }
@@ -843,8 +842,9 @@ var tableLongDist = [...]lunarLongDistCoeff{
 	{0, 1, 0, 0, -185116, 48888},
 	{0, 0, 0, 2, -114332, -3149},
 	{2, 0, -2, 0, 58793, 246158},
+	{2, -1, -1, 0, 57066, -152138},
   ...
-tableLongDist: 59 rows, tableLat: 57 rows
+tableLongDist: 59 rows, tableLat: 56 rows
 ```
 
 ### Moonrise by brute force
@@ -857,7 +857,6 @@ sed -n '168,215p' lunar.go
 ```
 
 ```output
-	}
 
 	localDate := date.In(obs.loc)
 	// Construct in local time then convert to UTC so DST is handled:
@@ -905,6 +904,7 @@ sed -n '168,215p' lunar.go
 	return MoonEvent{
 		Rise:         rise,
 		Set:          set,
+		AboveHorizon: aboveAtStart,
 ```
 
 That is ~1440 full Meeus evaluations per call, and the doc comment owns it:
@@ -956,11 +956,11 @@ sed -n '100,128p' lunar.go
 	return LunarPhaseInfo{
 		Illumination: K,
 		Elongation:   d,
-		Angle:        PA,
 		DaysApprox:   days,
 		Waxing:       d < 180,
 		Name:         lunarPhaseName(d),
 	}, nil
+}
 ```
 
 Elongation runs 0–360° and decides waxing from waning; the phase angle `PA`
@@ -1468,8 +1468,8 @@ cat coverage.ratchet
 # Uncovered statements per package. The gate fails in both directions:
 # a number that rises is lost coverage, one that falls is coverage to lock in.
 # Regenerate with: task ratchet:update
-github.com/philoserf/dusk/v3 10
-github.com/philoserf/dusk/v3/cmd/dusk 19
+github.com/philoserf/dusk/v4 10
+github.com/philoserf/dusk/v4/cmd/dusk 19
 ```
 
 The gate diffs the current counts against that file and fails **in both

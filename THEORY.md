@@ -70,7 +70,7 @@ A maintainer who didn't hold the theory would be most likely to damage things by
 
 ## Uncertainties and tensions
 
-Three items flagged here in the original version were subsequently confirmed, which is mild evidence that the reading was load-bearing rather than decorative. Two are now fixed: the `julianDate` doc comment misdescribed its own failure mode (#54), and `lunarPosition` — extracted precisely to compute the Moon's equatorial coordinates — was reimplemented inline twice inside `MoonriseMoonset` and unreachable from production code (#53); `MoonriseMoonset` now calls it. The third stands: the v2→v3 leftovers include exported surface nothing consumes, proposed for removal in a v4 (#56, #57).
+Three items flagged here in the original version were subsequently confirmed, which is mild evidence that the reading was load-bearing rather than decorative. Two are now fixed: the `julianDate` doc comment misdescribed its own failure mode (#54), and `lunarPosition` — extracted precisely to compute the Moon's equatorial coordinates — was reimplemented inline twice inside `MoonriseMoonset` and unreachable from production code (#53); `MoonriseMoonset` now calls it. The third is resolved the other way: the v3 leftovers included exported surface nothing consumed — the four result-type `String()` methods and `LunarPhaseInfo.Angle` — and v4.0.0 removes them (#56, #57). Only `Observer.String()` survives, because an example prints it.
 
 The rest I am still inferring from code alone, not from authors:
 

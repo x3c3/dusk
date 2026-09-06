@@ -137,7 +137,6 @@ type TwilightEvent struct {
 type LunarPhaseInfo struct {
 	Illumination float64 // percentage 0-100
 	Elongation   float64 // degrees 0-360
-	Angle        float64 // phase angle in degrees (may be negative per Meeus formula)
 	DaysApprox   float64 // rough days into lunation (linear estimate from elongation)
 	Waxing       bool    // true from New Moon to Full Moon (elongation 0-180)
 	Name         string  // "New Moon", "Waxing Crescent", etc.
@@ -164,48 +163,4 @@ type ecliptic struct {
 	lon  float64
 	lat  float64
 	dist float64
-}
-
-// formatTime formats a time as "HH:MM", or "--:--" for the zero value.
-func formatTime(t time.Time) string {
-	if t.IsZero() {
-		return "--:--"
-	}
-
-	return t.Format("15:04")
-}
-
-// String returns a human-readable representation of the sun event.
-func (s SunEvent) String() string {
-	return fmt.Sprintf("Rise=%s Noon=%s Set=%s Duration=%s",
-		formatTime(s.Rise),
-		formatTime(s.Noon),
-		formatTime(s.Set),
-		s.Duration)
-}
-
-// String returns a human-readable representation of the moon event.
-func (m MoonEvent) String() string {
-	return fmt.Sprintf("Rise=%s Set=%s AboveHorizon=%v",
-		formatTime(m.Rise),
-		formatTime(m.Set),
-		m.AboveHorizon)
-}
-
-// String returns a human-readable representation of the lunar phase.
-func (l LunarPhaseInfo) String() string {
-	namePart := l.Name
-	if namePart != "" {
-		namePart += " "
-	}
-
-	return fmt.Sprintf("%s%.1f%% (day %.1f)", namePart, l.Illumination, l.DaysApprox)
-}
-
-// String returns a human-readable representation of the twilight event.
-func (tw TwilightEvent) String() string {
-	return fmt.Sprintf("Dusk=%s Dawn=%s NightDuration=%s",
-		formatTime(tw.Dusk),
-		formatTime(tw.Dawn),
-		tw.NightDuration)
 }

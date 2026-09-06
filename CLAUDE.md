@@ -44,11 +44,11 @@ changing what the tests reach — read the diff before assuming a regression.
 
 ## Architecture
 
-Library is a single package at the repo root, with a reference CLI under `cmd/dusk`. Zero dependencies. Module path: `github.com/philoserf/dusk/v3`.
+Library is a single package at the repo root, with a reference CLI under `cmd/dusk`. Zero dependencies. Module path: `github.com/philoserf/dusk/v4`.
 
 | File       | Domain                                                                                     |
 | ---------- | ------------------------------------------------------------------------------------------ |
-| `dusk.go`  | Package doc, `Observer`/`NewObserver`, event types, sentinel errors, `String()` methods    |
+| `dusk.go`  | Package doc, `Observer`/`NewObserver`, event types, sentinel errors                        |
 | `solar.go` | `SunriseSunset`, civil/nautical/astronomical twilight, all unexported solar helpers        |
 | `lunar.go` | `MoonriseMoonset`, `LunarPhase`, unexported lunar helpers, Meeus Table 47.A/B coefficients |
 | `epoch.go` | Julian dates, sidereal time, nutation, obliquity, coordinate conversions (all unexported)  |

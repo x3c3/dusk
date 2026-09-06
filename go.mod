@@ -1,3 +1,3 @@
-module github.com/philoserf/dusk/v3
+module github.com/philoserf/dusk/v4
 
 go 1.27

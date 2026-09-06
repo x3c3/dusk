@@ -64,8 +64,6 @@ func TestLunarPhase(t *testing.T) {
 		wantWaxing bool
 		elongLow   float64 // elongation lower bound (degrees)
 		elongHigh  float64 // elongation upper bound (degrees)
-		angleLow   float64 // phase angle lower bound (degrees)
-		angleHigh  float64 // phase angle upper bound (degrees)
 	}{
 		{
 			name:       "near new moon 2024-01-11",
@@ -76,8 +74,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: true,
 			elongLow:   0,
 			elongHigh:  15,
-			angleLow:   165,
-			angleHigh:  180,
 		},
 		{
 			name:       "near first quarter 2024-01-18",
@@ -88,8 +84,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: true,
 			elongLow:   80,
 			elongHigh:  100,
-			angleLow:   80,
-			angleHigh:  100,
 		},
 		{
 			name:       "near full moon 2024-01-25",
@@ -100,8 +94,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: false, // exact full moon was 17:54 UTC; by 18:00 elongation > 180°
 			elongLow:   175,
 			elongHigh:  195,
-			angleLow:   -15,
-			angleHigh:  5,
 		},
 		{
 			name:       "waxing crescent 2024-01-14",
@@ -112,8 +104,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: true,
 			elongLow:   30,
 			elongHigh:  55,
-			angleLow:   125,
-			angleHigh:  150,
 		},
 		{
 			name:       "waxing gibbous 2024-01-21",
@@ -124,8 +114,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: true,
 			elongLow:   120,
 			elongHigh:  145,
-			angleLow:   35,
-			angleHigh:  60,
 		},
 		{
 			name:       "waning gibbous 2024-01-28",
@@ -136,8 +124,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: false,
 			elongLow:   200,
 			elongHigh:  225,
-			angleLow:   -45,
-			angleHigh:  -20,
 		},
 		{
 			name:       "near last quarter 2024-02-02",
@@ -148,8 +134,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: false,
 			elongLow:   260,
 			elongHigh:  280,
-			angleLow:   -100,
-			angleHigh:  -80,
 		},
 		{
 			name:       "waning crescent 2024-02-06",
@@ -160,8 +144,6 @@ func TestLunarPhase(t *testing.T) {
 			wantWaxing: false,
 			elongLow:   300,
 			elongHigh:  325,
-			angleLow:   -145,
-			angleHigh:  -120,
 		},
 	}
 
@@ -190,11 +172,6 @@ func TestLunarPhase(t *testing.T) {
 			if p.Elongation < tt.elongLow || p.Elongation > tt.elongHigh {
 				t.Errorf("Elongation = %.1f°, want [%.0f, %.0f]",
 					p.Elongation, tt.elongLow, tt.elongHigh)
-			}
-
-			if p.Angle < tt.angleLow || p.Angle > tt.angleHigh {
-				t.Errorf("Angle = %.1f°, want [%.0f, %.0f]",
-					p.Angle, tt.angleLow, tt.angleHigh)
 			}
 		})
 	}

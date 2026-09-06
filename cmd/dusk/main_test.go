@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/philoserf/dusk/v3"
+	"github.com/philoserf/dusk/v4"
 )
 
 // The coordinates the tests drive the command with. Each returns a fresh
