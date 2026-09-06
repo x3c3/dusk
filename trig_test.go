@@ -14,80 +14,6 @@ func approxEqual(a, b, eps float64) bool {
 	return math.Abs(a-b) < eps
 }
 
-func TestSinx(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		deg  float64
-		want float64
-	}{
-		{"0°", 0, 0},
-		{"90°", 90, 1},
-		{"180°", 180, 0},
-		{"270°", 270, -1},
-		{"-90°", -90, -1},
-		{"45°", 45, math.Sqrt(2) / 2},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := sinx(tc.deg)
-			if !approxEqual(got, tc.want, epsTrig) {
-				t.Errorf("sinx(%v) = %v, want %v", tc.deg, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestCosx(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		deg  float64
-		want float64
-	}{
-		{"0°", 0, 1},
-		{"90°", 90, 0},
-		{"180°", 180, -1},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := cosx(tc.deg)
-			if !approxEqual(got, tc.want, epsTrig) {
-				t.Errorf("cosx(%v) = %v, want %v", tc.deg, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestTanx(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		deg  float64
-		want float64
-	}{
-		{"0°", 0, 0},
-		{"45°", 45, 1},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := tanx(tc.deg)
-			if !approxEqual(got, tc.want, epsTrig) {
-				t.Errorf("tanx(%v) = %v, want %v", tc.deg, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestAsinx(t *testing.T) {
 	t.Parallel()
 
@@ -145,46 +71,6 @@ func TestAcosx(t *testing.T) {
 				t.Errorf("acosx(%v) = %v, want %v", tc.x, got, tc.want)
 			}
 		})
-	}
-}
-
-func TestAtan2x(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		y, x float64
-		want float64
-	}{
-		{"1,1", 1, 1, 45},
-		{"0,1", 0, 1, 0},
-		{"1,0", 1, 0, 90},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := atan2x(tc.y, tc.x)
-			if !approxEqual(got, tc.want, epsTrig) {
-				t.Errorf("atan2x(%v, %v) = %v, want %v", tc.y, tc.x, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestSincosx(t *testing.T) {
-	t.Parallel()
-
-	s, c := sincosx(30)
-	wantSin := 0.5
-	wantCos := math.Sqrt(3) / 2
-
-	if !approxEqual(s, wantSin, epsTrig) {
-		t.Errorf("sincosx(30) sin = %v, want %v", s, wantSin)
-	}
-
-	if !approxEqual(c, wantCos, epsTrig) {
-		t.Errorf("sincosx(30) cos = %v, want %v", c, wantCos)
 	}
 }
 

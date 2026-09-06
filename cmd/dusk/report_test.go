@@ -120,9 +120,9 @@ func TestNotesDistinguishStates(t *testing.T) {
 		got     string
 		wantSub string
 	}{
-		{"solar stays above", solarNote(stateStaysAbove), "midnight sun"},
-		{"solar stays below", solarNote(stateStaysBelow), "polar night"},
-		{"solar crosses", solarNote(stateCrosses), ""},
+		{"solar stays above", solarNotes[stateStaysAbove], "midnight sun"},
+		{"solar stays below", solarNotes[stateStaysBelow], "polar night"},
+		{"solar crosses", solarNotes[stateCrosses], ""},
 		{"twilight stays above", twilightNote(stateStaysAbove, 6), "never gets this dark"},
 		{"twilight stays below", twilightNote(stateStaysBelow, 6), "this dark all day"},
 		{"twilight crosses", twilightNote(stateCrosses, 6), ""},
