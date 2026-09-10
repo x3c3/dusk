@@ -1,109 +1,102 @@
-# Dusk Walkthrough
+# dusk Walkthrough
 
-*2026-09-06T13:24:59Z by Showboat 0.6.1*
-<!-- showboat-id: 25364f3c-47a8-4fa5-b022-09cf7d286d97 -->
+*2026-09-09T22:54:40Z by Showboat 0.6.1*
+<!-- showboat-id: f8ba9125-7a28-40de-9ad7-4d44ed44893f -->
 
 ## Overview
 
-`dusk` is a Go library that answers questions about the sky at a given place
-on a given day: when the sun rises and sets, when each band of twilight
-begins and ends, when the moon rises and sets, and what phase it is in.
+`dusk` is a zero-dependency Go library that answers three questions about one place on
+one day: when does the Sun cross a given depth below the horizon, when does the Moon
+cross the horizon, and how much of the Moon is lit. The algorithms are Meeus's, from
+_Astronomical Algorithms_ (2nd ed.), with the sunrise/sunset path following the NOAA
+simplification of them.
 
-Three things shape the whole codebase:
+There are seven exported functions and one constructor. Everything else in the package
+is unexported machinery reached through them.
 
-- **Zero dependencies.** Nothing outside the standard library. The Meeus
-  coefficient tables are transcribed into the source rather than fetched.
-- **One package at the root**, with a reference CLI under `cmd/dusk`. There
-  is no internal package structure to navigate — file boundaries are by
-  domain, not by layer.
-- **Degrees everywhere.** Meeus's *Astronomical Algorithms* is written in
-  degrees, so the code is too, and a thin wrapper layer keeps `math`'s
-  radians out of sight.
+- `NewObserver(lat, lon, loc)` — the only way to build the viewpoint every calculation needs
+- `SunriseSunset(date, obs)` — sunrise, solar noon, sunset, daylight duration
+- `CivilTwilight` / `NauticalTwilight` / `AstronomicalTwilight` `(date, obs)` — the Sun at 6°, 12°, 18° below the horizon
+- `MoonriseMoonset(date, obs)` — moonrise and moonset, plus whether the Moon was up at the start of the day
+- `LunarPhase(date)` — illumination, elongation, approximate age, waxing, name
 
-There are two entry surfaces. The library exports five calculation functions
-and a constructor; `cmd/dusk` is the reference consumer that calls every one
-of them.
+A reference CLI under `cmd/dusk` calls every one of them and is the executable
+specification for the library's contract.
 
-```bash
-wc -l *.go cmd/dusk/*.go | grep -v _test | grep -v '^ *[0-9]* total'
-```
-
-```output
-     166 dusk.go
-     228 epoch.go
-     440 lunar.go
-     244 solar.go
-      44 trig.go
-     215 cmd/dusk/main.go
-     327 cmd/dusk/render.go
-     314 cmd/dusk/report.go
-```
+This walkthrough runs bottom-up through the library — angles, then time, then the Sun,
+then the Moon — and then top-down through the CLI, which is the only place all seven
+functions are used together. Every fenced block below was executed to produce the
+output beneath it.
 
 ## Architecture
 
-Files divide by **domain**, not by layer, and depend on each other in one
-direction only:
-
-| File | Holds | Depends on |
-| --- | --- | --- |
-| `trig.go` | Degree-based trig wrappers, `clamp`, angle normalization | `math` |
-| `epoch.go` | Julian dates, sidereal time, nutation, coordinate conversion | `trig` |
-| `dusk.go` | Package doc, `Observer`, result types, sentinel errors | — |
-| `solar.go` | `SunriseSunset`, the three twilights, solar helpers | `trig`, `epoch`, `dusk` |
-| `lunar.go` | `MoonriseMoonset`, `LunarPhase`, Meeus Table 47.A/B | `trig`, `epoch`, `dusk` |
-| `cmd/dusk/` | The reference CLI | the public API only |
-
-`solar.go` and `lunar.go` never call each other. Everything they share lives
-below them in `epoch.go` and `trig.go`.
-
-Here is the entire public surface — six sentinel errors, one constructor,
-five calculations, four result types:
+The library is a single package at the repository root. Go's package rules mean the
+five `.go` files are one namespace with one doc comment — the split is for readers, not
+for the compiler, so any unexported helper is reachable from any file.
 
 ```bash
-go doc . | sed -n '21,40p'
+git ls-files ':!:WALKTHROUGH.md' ':!:THEORY.md' ':!:CHANGELOG.md' ':!:LICENSE'
 ```
 
 ```output
-const ErrCircumpolar = stringError("dusk: object is circumpolar (always above the horizon)")
-const ErrDateOutOfRange = stringError("dusk: date outside valid range (1677-09-21 to 2262-04-11)")
-const ErrInvalidCoord = stringError("dusk: latitude must be in [-90, 90] and longitude in [-180, 180]")
-const ErrNeverRises = stringError("dusk: object never rises at this latitude")
-const ErrNilLocation = stringError("dusk: location must not be nil")
-const ErrNonFiniteCoord = stringError("dusk: coordinates must be finite (NaN and Inf are not allowed)")
-type LunarPhaseInfo struct{ ... }
-    func LunarPhase(date time.Time) (LunarPhaseInfo, error)
-type MoonEvent struct{ ... }
-    func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error)
-type Observer struct{ ... }
-    func NewObserver(lat, lon float64, loc *time.Location) (Observer, error)
-type SunEvent struct{ ... }
-    func SunriseSunset(date time.Time, obs Observer) (SunEvent, error)
-type TwilightEvent struct{ ... }
-    func AstronomicalTwilight(date time.Time, obs Observer) (TwilightEvent, error)
-    func CivilTwilight(date time.Time, obs Observer) (TwilightEvent, error)
-    func NauticalTwilight(date time.Time, obs Observer) (TwilightEvent, error)
+.claude/settings.json
+.github/dependabot.yml
+.github/workflows/ci.yml
+.github/workflows/claude.yml
+.gitignore
+.golangci.yml
+Brewfile
+CLAUDE.md
+README.md
+Taskfile.yml
+benchmark_test.go
+cmd/dusk/main.go
+cmd/dusk/main_test.go
+cmd/dusk/render.go
+cmd/dusk/render_test.go
+cmd/dusk/report.go
+cmd/dusk/report_test.go
+coverage.ratchet
+dusk.go
+dusk_test.go
+epoch.go
+epoch_test.go
+example_test.go
+fuzz_test.go
+go.mod
+lunar.go
+lunar_test.go
+solar.go
+solar_test.go
+trig.go
+trig_test.go
 ```
 
-Note what is *not* there: no configuration, no options struct, no interfaces.
-Every function takes a value and returns a value.
+| File          | What lives there                                                               |
+| ------------- | ------------------------------------------------------------------------------ |
+| `trig.go`     | Degree-mode trig wrappers, `clamp`, `mod360`/`mod24`                            |
+| `epoch.go`    | Julian dates and their range check, sidereal time, nutation, coordinate changes |
+| `dusk.go`     | Package doc, `Observer`, the result types, the sentinel errors                  |
+| `solar.go`    | `SunriseSunset`, the three twilights, the solar helpers                         |
+| `lunar.go`    | `LunarPhase`, `MoonriseMoonset`, and the transcribed Meeus tables               |
+| `cmd/dusk/`   | The reference CLI: `main.go` flags, `report.go` assembly, `render.go` output    |
 
----
+The dependency direction is strictly one way: `trig.go` depends on nothing, `epoch.go`
+on `trig.go`, and `solar.go` and `lunar.go` on both. `cmd/dusk` sees only the exported
+API, exactly as any other consumer would.
 
-## 1. The foundation: degrees, not radians
+## Layer one: angles
 
-Meeus's formulas are written in degrees. Rather than sprinkle conversions
-through the astronomy, `trig.go` wraps `math` once and the rest of the
-codebase never sees a radian.
+Meeus's formulae are written in degrees; Go's `math` is written in radians. Rather than
+convert at each of the several hundred call sites, `trig.go` wraps every trig function
+the package uses so that **every angle in every other file is in degrees**. There is no
+radian anywhere outside this file.
 
 ```bash
-sed -n '1,22p' trig.go
+sed -n '5,26p' trig.go
 ```
 
 ```output
-package dusk
-
-import "math"
-
 const (
 	degToRad = math.Pi / 180.0
 	radToDeg = 180.0 / math.Pi
@@ -122,16 +115,22 @@ func tanx(deg float64) float64    { return math.Tan(deg * degToRad) }
 func asinx(x float64) float64     { return radToDeg * math.Asin(clamp(x)) }
 func acosx(x float64) float64     { return radToDeg * math.Acos(clamp(x)) }
 func atan2x(y, x float64) float64 { return radToDeg * math.Atan2(y, x) }
+
+func sincosx(deg float64) (float64, float64) {
+	return math.Sincos(deg * degToRad)
+}
 ```
 
-`clamp` is the only one of these with behavior of its own, and it is doing
-real work: a long chain of floating-point trig can produce `1.0000000000000002`
-where the mathematics guarantees at most `1`, and `math.Asin` of that is `NaN`.
-Clamping trades a silent `NaN` for a silently-corrected value — a deliberate
-trade the comment argues for explicitly.
+`clamp` is the piece worth pausing on, because its own comment argues against it. Values
+that ought to lie in `[-1, 1]` arrive at `asin` and `acos` through long chains of
+degree-mode trig, and floating-point rounding puts them at 1.0000000000000002 often
+enough to matter. Clamping turns a NaN that would poison the whole result into a correct
+answer — at the price of also absorbing a genuinely wrong 1.3. The package accepts that
+trade and pays for it with reference-value tests against USNO and Meeus, which is why
+weakening those tests is more dangerous here than a coverage number suggests.
 
-Two normalizers close the file. Every angle in the codebase passes through one
-of them:
+The other half of the discipline is normalisation. An angle that has been added to or
+subtracted from is wrapped at the point it becomes a result, not left to its consumer.
 
 ```bash
 sed -n '28,44p' trig.go
@@ -157,17 +156,15 @@ func mod24(x float64) float64 {
 }
 ```
 
----
+## Layer two: time
 
-## 2. Time: the Julian date, and the range that bounds everything
-
-Astronomy counts time in Julian days — a continuous day count that ignores
-calendars entirely. `epoch.go` converts to and from it.
-
-The conversion is three lines, but the doc comment is the important part:
+Every calculation happens in Julian days — the continuous count astronomers use — and
+the polynomials are written around **J2000**, Julian date 2451545.0, which is noon UT on
+1 January 2000. `j1970` is the same constant for the Unix epoch, and it is what lets
+`julianDate` go through `time.Time`.
 
 ```bash
-sed -n '8,44p' epoch.go
+sed -n '8,26p' epoch.go
 ```
 
 ```output
@@ -190,7 +187,20 @@ func julianDate(t time.Time) float64 {
 
 	return float64(ms)/86400000.0 + j1970
 }
+```
 
+Going through `UnixNano` buys `time.Time` interop and costs a date range. The comment is
+precise about the failure mode, and the precision is the point: `UnixNano` outside its
+range does not return zero or any recognisable marker, it returns an arbitrary wrong
+number. A missing range check here would not crash, it would produce a plausible
+sunrise for the wrong century. So the bound is checked, and the sentinel that reports it
+lives next to the bound rather than with the other errors in `dusk.go`.
+
+```bash
+sed -n '28,47p' epoch.go
+```
+
+```output
 // ErrDateOutOfRange is returned when a date falls outside the valid range
 // for Julian date calculations (the int64 nanosecond bounds, approximately
 // 1677-09-21 to 2262-04-11).
@@ -208,31 +218,50 @@ func validJulianDateRange(t time.Time) error {
 	if t.Before(julianDateMin) || t.After(julianDateMax) {
 		return ErrDateOutOfRange
 	}
+
+	return nil
+}
 ```
 
-Because `julianDate` reads `UnixNano`, the library inherits int64's range:
-roughly 1677 to 2262. **Every public entry point calls
-`validJulianDateRange` before doing anything else** — that is the one
-invariant keeping `julianDate` from silently returning nonsense.
-
-The comment is precise about *how* it fails — `UnixNano` wraps to an
-arbitrary value rather than to zero or any recognizable sentinel — because an
-earlier version claimed it returned 0, and a maintainer who believed that
-might reasonably skip a range check on a new call path.
-
-### Sidereal time
-
-To know where the sky is pointing you need sidereal time, not clock time.
-The implementation carries a warning worth reading twice:
+Three small conversions sit on top of `julianDate`, and the difference between them is
+load-bearing. `julianCentury` returns `T`, centuries since J2000, which is what the
+Meeus polynomials take. `julianDay` **rounds** to an integer day number, which is what
+the NOAA sunrise method takes. `meanSolarTime` applies the observer's longitude to that
+day number — and note that it does so itself, after the rounding, which is why the solar
+path must not be handed a timezone-adjusted instant.
 
 ```bash
-sed -n '46,76p' epoch.go
+sed -n '79,95p' epoch.go
 ```
 
 ```output
-	return nil
+// julianCentury returns the number of Julian centuries elapsed since J2000.0.
+func julianCentury(t time.Time) float64 {
+	return (julianDate(t) - j2000) / 36525.0
 }
 
+// julianDay returns the number of days since J2000.0, rounded to the nearest
+// integer (used for mean solar time).
+func julianDay(t time.Time) int {
+	JD := julianDate(t)
+
+	return int(math.Round(JD - j2000))
+}
+
+// meanSolarTime returns the mean solar time for a given instant and longitude.
+func meanSolarTime(t time.Time, longitude float64) float64 {
+	return float64(julianDay(t)) - longitude/360.0
+}
+```
+
+Sidereal time is where the Moon's path begins. The comment here is a warning left by
+someone who was tempted:
+
+```bash
+sed -n '49,68p' epoch.go
+```
+
+```output
 // greenwichMeanSiderealTime returns the mean sidereal time at Greenwich in
 // degrees for the given instant.
 //
@@ -253,125 +282,74 @@ func greenwichMeanSiderealTime(t time.Time) float64 {
 
 	return mod360(theta)
 }
-
-// localSiderealTime returns the local sidereal time in hours for a given
-// instant and observer longitude (east positive, west negative, in degrees).
-func localSiderealTime(t time.Time, longitude float64) float64 {
-	gst := greenwichMeanSiderealTime(t) // degrees
-	lst := gst + longitude              // degrees
-
-	return mod24(lst / 15.0)
 ```
 
-That comment ("Do not 'simplify' by passing t here") marks a genuine trap:
-the polynomial terms and the linear term take their time from different
-places, and collapsing them looks like a cleanup but is a bug.
+Two lines in that function take different arguments on purpose: `T` comes from midnight
+UTC, `JD` from the instant itself. Collapse them and every moonrise moves.
 
-### From the ecliptic to the horizon
+## Layer three: the Observer and the result types
 
-Positions arrive in ecliptic coordinates and have to reach altitude and
-azimuth. Two conversions do it. The first applies full nutation — both the
-wobble in longitude and the wobble in obliquity:
+The `Observer` is the viewpoint every calculation needs, and it is not a container of
+three numbers — it is a *validated* container of three numbers. That distinction is the
+package's smallest and most consequential decision. Its fields are unexported and
+`NewObserver` is the only way in.
 
 ```bash
-sed -n '159,182p' epoch.go
+sed -n '63,88p' dusk.go
 ```
 
 ```output
-// ---------------------------------------------------------------------------
+// Observer represents a geographic position on Earth used as the viewpoint
+// for all astronomical calculations.
+type Observer struct {
+	lat float64
+	lon float64
+	loc *time.Location
+}
 
-// eclipticToEquatorial converts ecliptic coordinates (longitude, latitude in
-// degrees) to equatorial coordinates using nutation-corrected obliquity and
-// nutation in longitude.
-//
-// See Meeus, Astronomical Algorithms, eq. 13.3 & 13.4 p. 93.
-func eclipticToEquatorial(t time.Time, lon, lat float64) equatorial {
-	T := julianCentury(t)
+// NewObserver constructs an Observer after validating all inputs.
+// lat must be in [-90, 90], lon in [-180, 180], and loc must not be nil.
+// NaN and infinite values are rejected.
+func NewObserver(lat, lon float64, loc *time.Location) (Observer, error) {
+	if loc == nil {
+		return Observer{}, ErrNilLocation
+	}
 
-	L := solarMeanLongitude(T)
-	l := lunarMeanLongitude(T)
-	omega := lunarAscendingNode(T)
+	if math.IsNaN(lat) || math.IsInf(lat, 0) || math.IsNaN(lon) || math.IsInf(lon, 0) {
+		return Observer{}, ErrNonFiniteCoord
+	}
 
-	dpsi := nutationInLongitude(L, l, omega)
-	lon += dpsi
+	if lat < -90 || lat > 90 || lon < -180 || lon > 180 {
+		return Observer{}, ErrInvalidCoord
+	}
 
-	eps := meanObliquity(T) + nutationInObliquity(L, l, omega)
-
-	ra := atan2x(sinx(lon)*cosx(eps)-tanx(lat)*sinx(eps), cosx(lon))
-	dec := asinx(sinx(lat)*cosx(eps) + cosx(lat)*sinx(eps)*sinx(lon))
-
-	return equatorial{
-		ra:  mod360(ra),
+	return Observer{lat: lat, lon: lon, loc: loc}, nil
+}
 ```
 
-The second turns equatorial coordinates into what an observer actually sees,
-and has to guard a division that vanishes at the poles and at the zenith:
+Because construction validates, the entry points do not have to. Each one calls
+`validObserver`, which tests exactly one thing — is `loc` nil — because a zero-value
+`Observer` is the only invalid one Go's type system still permits.
 
 ```bash
-sed -n '184,226p' epoch.go
+sed -n '53,61p' dusk.go
 ```
 
 ```output
+// validObserver returns an error if obs was not constructed via NewObserver
+// (i.e., is a zero-value Observer with a nil location).
+func validObserver(obs Observer) error {
+	if obs.loc == nil {
+		return ErrNilLocation
 	}
+
+	return nil
 }
-
-// equatorialToHorizontal converts equatorial coordinates to horizontal
-// (altitude/azimuth) for the given observer position and time.
-//
-// See Meeus, Astronomical Algorithms, eq. 13.5 & 13.6 p. 93.
-func equatorialToHorizontal(t time.Time, obs Observer, eq equatorial) horizontal {
-	lst := localSiderealTime(t, obs.lon)
-	ha := hourAngle(eq.ra, lst)
-
-	alt := asinx(sinx(eq.dec)*sinx(obs.lat) + cosx(eq.dec)*cosx(obs.lat)*cosx(ha))
-
-	cosAltCosLat := cosx(alt) * cosx(obs.lat)
-
-	var az float64
-	// Guard against division by zero at the poles (lat ±90) or zenith (alt 90).
-	if math.Abs(cosAltCosLat) < 1e-10 {
-		az = 0
-	} else {
-		az = acosx((sinx(eq.dec) - sinx(alt)*sinx(obs.lat)) / cosAltCosLat)
-	}
-
-	// acos gives 0..180; if sin(ha) > 0, object is west, so az = 360 - az
-	if sinx(ha) > 0 {
-		az = 360 - az
-	}
-
-	return horizontal{
-		alt: alt,
-		az:  az,
-	}
-}
-
-// hourAngle computes the hour angle in degrees.
-//
-// Parameters use mixed units:
-//   - ra: right ascension in degrees (0-360)
-//   - lst: local sidereal time in hours (0-24)
-//
-// The conversion lst*15 is applied internally, so callers must not
-// pre-convert LST to degrees.
-func hourAngle(ra, lst float64) float64 {
 ```
 
-`hourAngle` closing the file is a wart the codebase admits to: it takes right
-ascension in **degrees** and local sidereal time in **hours**, and does the
-`×15` internally. The doc comment shouts about it because the alternative —
-converting at every call site — would stop the surrounding code from looking
-like the equations in the book.
-
----
-
-## 3. The Observer, and the shape of an answer
-
-`dusk.go` holds no astronomy. It defines who is asking and what an answer
-looks like.
-
-Errors first. They are declared as **constants**, which ordinary
-`errors.New` cannot do:
+The errors themselves are `const`, not `var`. Go cannot declare an `error` constant
+directly, so the package defines a string type with an `Error()` method and declares the
+sentinels as constants of it — immutable, unlike anything returned by `errors.New`.
 
 ```bash
 sed -n '27,51p' dusk.go
@@ -405,67 +383,17 @@ const ErrNonFiniteCoord = stringError("dusk: coordinates must be finite (NaN and
 const ErrInvalidCoord = stringError("dusk: latitude must be in [-90, 90] and longitude in [-180, 180]")
 ```
 
-Two of these six are not failures at all. `ErrCircumpolar` and
-`ErrNeverRises` describe **geometry** — the midnight sun and the polar night.
-A caller above the Arctic Circle will meet them on a perfectly ordinary day,
-and the CLI treats them as results and exits 0.
+The four result types are deliberately inert — no methods, no computed accessors, no
+behaviour. v4 removed the `String()` methods they briefly had. They are the boundary at
+which this package stops having opinions about your output format.
 
-`Observer` validates once, at construction, and then cannot be changed:
-
-```bash
-sed -n '62,98p' dusk.go
-```
-
-```output
-
-// Observer represents a geographic position on Earth used as the viewpoint
-// for all astronomical calculations.
-type Observer struct {
-	lat float64
-	lon float64
-	loc *time.Location
-}
-
-// NewObserver constructs an Observer after validating all inputs.
-// lat must be in [-90, 90], lon in [-180, 180], and loc must not be nil.
-// NaN and infinite values are rejected.
-func NewObserver(lat, lon float64, loc *time.Location) (Observer, error) {
-	if loc == nil {
-		return Observer{}, ErrNilLocation
-	}
-
-	if math.IsNaN(lat) || math.IsInf(lat, 0) || math.IsNaN(lon) || math.IsInf(lon, 0) {
-		return Observer{}, ErrNonFiniteCoord
-	}
-
-	if lat < -90 || lat > 90 || lon < -180 || lon > 180 {
-		return Observer{}, ErrInvalidCoord
-	}
-
-	return Observer{lat: lat, lon: lon, loc: loc}, nil
-}
-
-// Lat returns the observer's latitude in degrees.
-func (o Observer) Lat() float64 { return o.lat }
-
-// Lon returns the observer's longitude in degrees (east positive, west negative).
-func (o Observer) Lon() float64 { return o.lon }
-
-// Location returns the observer's timezone.
-func (o Observer) Location() *time.Location { return o.loc }
-
-```
-
-The fields are unexported and there are no setters, so a value that exists is
-a value that passed validation. The cost is `validObserver`, which every
-public entry point calls to catch a zero-value `Observer{}` that never went
-through the constructor.
-
-The result types are plain data, and they use **two different ways of saying
-"nothing happened"**:
+Note `MoonEvent`'s third field. `AboveHorizon` exists because "no rise and no set" is
+ambiguous between the Moon being up all day and down all day, and only that flag tells
+them apart. Its doc comment still promises a duration the type does not have — see
+`moonevent-doc-promises-a-duration-field-removed-in-v3` in `.issues/`.
 
 ```bash
-sed -n '109,146p' dusk.go
+sed -n '109,143p' dusk.go
 ```
 
 ```output
@@ -504,26 +432,14 @@ type LunarPhaseInfo struct {
 	Waxing       bool    // true from New Moon to Full Moon (elongation 0-180)
 	Name         string  // "New Moon", "Waxing Crescent", etc.
 }
-
-// equatorial represents right ascension and declination in degrees.
-// Used internally for coordinate conversions.
 ```
 
-A **zero `time.Time`** means "this did not happen today" — the Moon rises but
-does not set before midnight. A **sentinel error** means "the geometry forbids
-this here" — the sun never clears the horizon at all. `MoonEvent` uses the
-first, `SunEvent` the second, and mixing them up is the easiest mistake a
-caller can make.
+## Layer four: the Sun
 
-Note also `TwilightEvent`: `Dusk` is tonight's, but `Dawn` is *tomorrow
-morning's*. That asymmetry drives a real complication in the CLI, below.
-
----
-
-## 4. The Sun
-
-Sunrise, sunset and all three twilights are the same calculation with one
-number changed. `solarParams` is the shared chokepoint:
+`SunriseSunset` is the shortest path through the whole system, so it is the right place
+to start. Six steps produce two numbers — the Sun's declination and the Julian date of
+solar transit — and the pair is shared with the twilight code, which is why it is
+factored out.
 
 ```bash
 sed -n '7,27p' solar.go
@@ -553,27 +469,11 @@ func computeSolarParams(date time.Time, lon float64) solarParams {
 }
 ```
 
-Six steps — mean solar time, mean anomaly, equation of center, ecliptic
-longitude, declination, transit — and everything downstream is a pure function
-of `{delta, jTransit}` plus a latitude and a depression angle. A new
-sun-based boundary ("blue hour", say) is a new depression value, not a new
-algorithm.
-
-`SunriseSunset` puts that to work:
-
 ```bash
-sed -n '29,70p' solar.go
+sed -n '37,72p' solar.go
 ```
 
 ```output
-// SunriseSunset computes sunrise, solar noon, and sunset for the given date
-// and observer position. The observer must be constructed via [NewObserver].
-// The date is converted to the observer's timezone to determine the local
-// calendar day; the time-of-day is ignored.
-// Output times are converted to the observer's timezone.
-//
-// The algorithm follows the NOAA solar calculator method (derived from Meeus,
-// Astronomical Algorithms).
 func SunriseSunset(date time.Time, obs Observer) (SunEvent, error) {
 	err := validObserver(obs)
 	if err != nil {
@@ -608,30 +508,32 @@ func SunriseSunset(date time.Time, obs Observer) (SunEvent, error) {
 		Noon:     noon,
 		Set:      set,
 		Duration: set.Sub(rise),
+	}, nil
+}
 ```
 
-The shape here repeats at every public entry point: **validate the observer,
-resolve the calendar day in the observer's zone, validate the range, then
-compute.** That second step is a contract callers must respect —
-`date.In(obs.loc)` picks the local day and throws the time away, so a
-`time.UTC` midnight lands on the *previous* day for anyone west of Greenwich.
+Two lines in the middle of that function carry most of the contract. First
+`localDate := date.In(obs.loc)`, then a `time.Date(...)` rebuilt from its year, month
+and day.
 
-The rise and set times are symmetric about transit: subtract the hour angle
-for one, add it for the other.
+The calendar day is resolved **in the observer's zone**, and the time of day is then
+thrown away. A caller who builds the date with `time.UTC` and hands it to an observer
+in Detroit gets the previous day, silently, with entirely plausible times — this is the
+single easiest mistake to make against this API.
 
-### Where the polar cases come from
+The day is then rebuilt as **UTC** midnight, not local midnight. That looks like a bug
+and is not: `meanSolarTime` applies the observer's longitude itself, so handing it a
+zone-adjusted instant would apply longitude twice. Remember this when the lunar path
+does the opposite.
 
-Everything interesting happens in `solarHourAngle`, and it is only twenty
-lines:
+Everything hinges on `solarHourAngle` — how far from the meridian the Sun is when it
+touches the angle you asked about. This is where polar geometry becomes an error.
 
 ```bash
-sed -n '119,155p' solar.go
+sed -n '122,155p' solar.go
 ```
 
 ```output
-	return asinx(sinx(lambda) * sinx(eps))
-}
-
 // solarHourAngle returns the hour angle in degrees for the Sun at the given
 // declination, observer latitude, and depression angle (degrees below the
 // geometric horizon, positive downward). For standard sunrise/sunset, pass
@@ -668,22 +570,21 @@ func solarHourAngle(delta, depression, lat float64) (float64, error) {
 }
 ```
 
-`cosHA` is the cosine of the hour angle at which the sun reaches the target
-depth. If that cosine falls outside [-1, 1] there is **no such moment** — and
-which side it falls off tells you which polar case you are in. Midnight sun
-and polar night are not error handling bolted on; they drop out of the
-geometry.
+The `-0.83` for sunrise/sunset is atmospheric refraction plus the Sun's semidiameter:
+the Sun is *seen* to rise while still geometrically below the horizon. Twilight uses its
+depression angle unadjusted, per the IAU/USNO definition — the two conventions are
+different, which is why the function branches rather than always subtracting 0.83.
 
-The `depression` parameter is what makes one function serve four boundaries:
-pass 0 for sunrise (with its −0.83° nod to refraction and the sun's radius),
-or 6, 12, 18 for the twilights.
+The two out-of-range branches are the whole polar story. `cosHA < -1` means the Sun
+never gets *down* to the angle; `cosHA > 1` means it never gets *up* to it. At the
+horizon those are midnight sun and polar night. At 18° below it they mean something a
+reader gets backwards on first contact — the night never gets that dark, and the day
+never gets that light — and the CLI has to say so out loud.
 
-### Twilight
-
-The three exported twilights are one line each:
+The three twilight functions are one function with the depression angle bound.
 
 ```bash
-sed -n '166,184p' solar.go
+sed -n '166,183p' solar.go
 ```
 
 ```output
@@ -705,17 +606,28 @@ func NauticalTwilight(date time.Time, obs Observer) (TwilightEvent, error) {
 func AstronomicalTwilight(date time.Time, obs Observer) (TwilightEvent, error) {
 	return twilight(date, obs, 18)
 }
-
 ```
 
-And `twilight` spans **two calendar days**, because tonight's dusk and
-tomorrow's dawn are the two ends of one night:
+`twilight` itself computes the solar parameters **twice** — once for the date you asked
+about and once for the day after — because a `TwilightEvent` is not a symmetric bracket
+around a night. It is the night that *starts* on the date you gave.
 
 ```bash
-sed -n '208,244p' solar.go
+sed -n '197,244p' solar.go
 ```
 
 ```output
+func twilight(date time.Time, obs Observer, depression float64) (TwilightEvent, error) {
+	err := validObserver(obs)
+	if err != nil {
+		return TwilightEvent{}, err
+	}
+
+	localDate := date.In(obs.loc)
+
+	date = time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, time.UTC)
+
+	err = validJulianDateRange(date)
 	if err != nil {
 		return TwilightEvent{}, err
 	}
@@ -755,23 +667,23 @@ sed -n '208,244p' solar.go
 }
 ```
 
-Two `computeSolarParams` calls, one per day. Because both must succeed, a
-polar transition date — where tonight's dusk exists but tomorrow's dawn does
-not — fails the whole call rather than returning half an answer.
+Two consequences fall out of that shape, and both bite in practice:
 
----
+1. **To get this morning's dawn, call with yesterday's date.** Nothing enforces this;
+   the doc comment is the whole contract.
+2. **Either day failing fails the whole call.** Near 65–70°N there are transition dates
+   where tonight's dusk is real and tomorrow's dawn is not. The function returns an
+   error and discards the dusk it already computed. The doc comment concedes this and
+   tells callers needing partial results to compute each boundary themselves.
 
-## 5. The Moon
+## Layer five: the Moon
 
-The Moon is harder. There is no closed form for when it crosses the horizon,
-so `lunar.go` is longer than everything above it combined — most of it
-transcribed coefficient tables.
-
-Its position comes from Meeus Chapter 47: a mean longitude plus sixty periodic
-corrections, each a sine of some combination of five angles.
+The lunar path shares `epoch.go` with the solar path and almost nothing else. It runs
+the full Meeus Chapter 47 series — sixty periodic terms for longitude and distance,
+sixty more for latitude — transcribed into the source as two tables.
 
 ```bash
-sed -n '21,60p' lunar.go
+sed -n '21,58p' lunar.go
 ```
 
 ```output
@@ -813,22 +725,29 @@ func lunarEclipticPosition(t time.Time) ecliptic {
 			Sr += r.Σr * ca * E2
 		}
 	}
-
-	for i := range tableLat {
 ```
 
-The `switch r.M` is not a style choice. Terms involving the Sun's anomaly are
-scaled by the Earth's changing orbital eccentricity — once for `M = ±1`,
-twice for `M = ±2` — exactly as Meeus prescribes.
+The `switch r.M` is not a style choice. Meeus's `E` factor corrects for the eccentricity
+of the Earth's orbit, and it is applied once to terms containing the Sun's mean anomaly
+`M` and twice to terms containing `2M`. The switch reads that power off the table's own
+`M` column. There is no `default` branch, so a row with `|M| > 2` would contribute
+nothing at all — Meeus 47.A contains no such row, and neither does the transcription.
 
-The tables themselves are Go array literals, with the Greek field names kept
-so a reader can check them against the book:
+The tables are Go struct literals with Meeus's own column names, including the primed
+`Mʹ` that distinguishes the Moon's mean anomaly from the Sun's.
 
 ```bash
-sed -n '283,296p' lunar.go && echo '  ...' && echo "tableLongDist: $(grep -c '^\s*{' <(sed -n '292,367p' lunar.go)) rows, tableLat: $(grep -c '^\s*{' <(sed -n '369,445p' lunar.go)) rows"
+sed -n '276,296p' lunar.go
 ```
 
 ```output
+// Meeus Table 47.A — Periodic terms for the longitude (Σl) and distance (Σr)
+// of the Moon.
+//
+// See Meeus, Astronomical Algorithms, p. 339.
+type lunarLongDistCoeff struct{ D, M, Mʹ, F, Σl, Σr float64 }
+
+// Meeus Table 47.B — Periodic terms for the latitude (Σb) of the Moon.
 //
 // See Meeus, Astronomical Algorithms, p. 341.
 type lunarLatCoeff struct{ D, M, Mʹ, F, Σb float64 }
@@ -843,20 +762,161 @@ var tableLongDist = [...]lunarLongDistCoeff{
 	{0, 0, 0, 2, -114332, -3149},
 	{2, 0, -2, 0, 58793, 246158},
 	{2, -1, -1, 0, 57066, -152138},
-  ...
-tableLongDist: 59 rows, tableLat: 56 rows
 ```
 
-### Moonrise by brute force
-
-With no closed form available, `MoonriseMoonset` simply walks the day a
-minute at a time and watches for the altitude to change sign:
+`LunarPhase` is the odd one out among the public functions: it takes no `Observer`,
+because the Moon shows the same face to the whole Earth, and it uses the exact instant
+rather than the calendar day, because phase changes continuously.
 
 ```bash
-sed -n '168,215p' lunar.go
+sed -n '92,128p' lunar.go
 ```
 
 ```output
+func LunarPhase(date time.Time) (LunarPhaseInfo, error) {
+	err := validJulianDateRange(date)
+	if err != nil {
+		return LunarPhaseInfo{}, err
+	}
+
+	ec := lunarEclipticPosition(date)
+
+	J := julianDate(date) - j2000
+	Msol := solarMeanAnomaly(J)
+	C := solarEquationOfCenter(Msol)
+	sunLon := solarEclipticLongitude(Msol, C)
+
+	T := julianCentury(date)
+	Mp := lunarMeanAnomaly(T)
+
+	// elongation (0-360°, waxing = 0-180, waning = 180-360)
+	d := acosx(cosx(ec.lon-sunLon) * cosx(ec.lat))
+	if mod360(ec.lon-sunLon) > 180 {
+		d = 360 - d
+	}
+
+	// phase angle (Meeus p. 346)
+	PA := 180 - d - 0.1468*((1-0.0549*sinx(Mp))/(1-0.0167*sinx(Msol)))*sinx(d)
+
+	K := 100 * (1 + cosx(PA)) / 2
+
+	days := d / 360 * lunarMonthDays
+
+	return LunarPhaseInfo{
+		Illumination: K,
+		Elongation:   d,
+		DaysApprox:   days,
+		Waxing:       d < 180,
+		Name:         lunarPhaseName(d),
+	}, nil
+}
+```
+
+`acosx` can only return 0–180, so the line after it unfolds the elongation to the full
+0–360 circle — which is what makes `Waxing: d < 180` a real test rather than a guess.
+`PA`, the Meeus phase angle, was an exported field until v4 removed it; it is now a
+local, consumed one line later by the illumination formula and discarded. (The README's
+API list has not caught up — see `readme-lists-a-phase-angle-that-v4-removed` in
+`.issues/`.)
+
+Moonrise and moonset need the Moon's position in the observer's sky, not on the
+ecliptic, so two conversions from `epoch.go` come in here. The first applies full
+nutation, both Δψ and Δε — unlike `solarDeclination`, which uses mean obliquity alone.
+That asymmetry is deliberate: the sunrise path is a simplification whose budget is 1–2
+minutes and does not earn the nutation terms back.
+
+```bash
+sed -n '161,185p' epoch.go
+```
+
+```output
+// eclipticToEquatorial converts ecliptic coordinates (longitude, latitude in
+// degrees) to equatorial coordinates using nutation-corrected obliquity and
+// nutation in longitude.
+//
+// See Meeus, Astronomical Algorithms, eq. 13.3 & 13.4 p. 93.
+func eclipticToEquatorial(t time.Time, lon, lat float64) equatorial {
+	T := julianCentury(t)
+
+	L := solarMeanLongitude(T)
+	l := lunarMeanLongitude(T)
+	omega := lunarAscendingNode(T)
+
+	dpsi := nutationInLongitude(L, l, omega)
+	lon += dpsi
+
+	eps := meanObliquity(T) + nutationInObliquity(L, l, omega)
+
+	ra := atan2x(sinx(lon)*cosx(eps)-tanx(lat)*sinx(eps), cosx(lon))
+	dec := asinx(sinx(lat)*cosx(eps) + cosx(lat)*sinx(eps)*sinx(lon))
+
+	return equatorial{
+		ra:  mod360(ra),
+		dec: dec,
+	}
+}
+```
+
+```bash
+sed -n '187,216p' epoch.go
+```
+
+```output
+// equatorialToHorizontal converts equatorial coordinates to horizontal
+// (altitude/azimuth) for the given observer position and time.
+//
+// See Meeus, Astronomical Algorithms, eq. 13.5 & 13.6 p. 93.
+func equatorialToHorizontal(t time.Time, obs Observer, eq equatorial) horizontal {
+	lst := localSiderealTime(t, obs.lon)
+	ha := hourAngle(eq.ra, lst)
+
+	alt := asinx(sinx(eq.dec)*sinx(obs.lat) + cosx(eq.dec)*cosx(obs.lat)*cosx(ha))
+
+	cosAltCosLat := cosx(alt) * cosx(obs.lat)
+
+	var az float64
+	// Guard against division by zero at the poles (lat ±90) or zenith (alt 90).
+	if math.Abs(cosAltCosLat) < 1e-10 {
+		az = 0
+	} else {
+		az = acosx((sinx(eq.dec) - sinx(alt)*sinx(obs.lat)) / cosAltCosLat)
+	}
+
+	// acos gives 0..180; if sin(ha) > 0, object is west, so az = 360 - az
+	if sinx(ha) > 0 {
+		az = 360 - az
+	}
+
+	return horizontal{
+		alt: alt,
+		az:  az,
+	}
+}
+```
+
+Only `alt` is ever read. `az` is computed on every one of the ~1440 iterations of every
+moonrise scan and thrown away — and its pole guard interacts with the west-correction
+below it in a way that can produce 360 rather than 0
+(`horizontal-azimuth-can-be-360-at-the-pole-guard` in `.issues/`).
+
+With altitude available, `MoonriseMoonset` is a brute-force scan: walk the local day one
+minute at a time and watch for the altitude crossing the refraction-corrected horizon.
+
+```bash
+sed -n '158,217p' lunar.go
+```
+
+```output
+func MoonriseMoonset(date time.Time, obs Observer) (MoonEvent, error) {
+	err := validObserver(obs)
+	if err != nil {
+		return MoonEvent{}, err
+	}
+
+	err = validJulianDateRange(date)
+	if err != nil {
+		return MoonEvent{}, err
+	}
 
 	localDate := date.In(obs.loc)
 	// Construct in local time then convert to UTC so DST is handled:
@@ -905,105 +965,37 @@ sed -n '168,215p' lunar.go
 		Rise:         rise,
 		Set:          set,
 		AboveHorizon: aboveAtStart,
-```
-
-That is ~1440 full Meeus evaluations per call, and the doc comment owns it:
-"slow by design", 1–2 ms, and a warning that a 30-day calendar costs 30–60 ms.
-
-Three details worth catching:
-
-- The day is built **in the observer's zone and then converted to UTC**, so
-  `scanMinutes` is 1380 on a spring-forward day and 1500 on a fall-back day
-  rather than a hardcoded 1440.
-- `aboveAtStart` is sampled before the loop. It is the only way to explain a
-  moonset that appears *before* a moonrise on the same day.
-- There is no sentinel error here. A Moon that never crosses returns two zero
-  times, and the caller must consult `AboveHorizon` to tell "up all day" from
-  "down all day".
-
-### Phase
-
-`LunarPhase` is the one entry point that uses the **exact instant** rather
-than the calendar day — phase changes continuously, and the same moment looks
-the same from everywhere on Earth:
-
-```bash
-sed -n '100,128p' lunar.go
-```
-
-```output
-	J := julianDate(date) - j2000
-	Msol := solarMeanAnomaly(J)
-	C := solarEquationOfCenter(Msol)
-	sunLon := solarEclipticLongitude(Msol, C)
-
-	T := julianCentury(date)
-	Mp := lunarMeanAnomaly(T)
-
-	// elongation (0-360°, waxing = 0-180, waning = 180-360)
-	d := acosx(cosx(ec.lon-sunLon) * cosx(ec.lat))
-	if mod360(ec.lon-sunLon) > 180 {
-		d = 360 - d
-	}
-
-	// phase angle (Meeus p. 346)
-	PA := 180 - d - 0.1468*((1-0.0549*sinx(Mp))/(1-0.0167*sinx(Msol)))*sinx(d)
-
-	K := 100 * (1 + cosx(PA)) / 2
-
-	days := d / 360 * lunarMonthDays
-
-	return LunarPhaseInfo{
-		Illumination: K,
-		Elongation:   d,
-		DaysApprox:   days,
-		Waxing:       d < 180,
-		Name:         lunarPhaseName(d),
 	}, nil
 }
 ```
 
-Elongation runs 0–360° and decides waxing from waning; the phase angle `PA`
-is the Sun–Moon–Earth angle, and illumination follows from its cosine. The
-raw elongation is also mapped to one of eight names by fixed 22.5° bands in
-`lunarPhaseName`.
+Compare the day construction here with `SunriseSunset`'s. This one builds midnight **in
+`obs.loc`** and converts to UTC, and it computes tomorrow's local midnight the same way,
+because it needs real instants to evaluate positions at — and it needs the day's real
+*length*: `scanMinutes` is 1380 on a spring-forward day and 1500 on a fall-back day, not
+a hard-coded 1440. The solar path wanted the opposite. Unify them and one of the two
+breaks. Neither comment mentions the other, which is filed as
+`two-day-constructions-read-as-a-contradiction-in-sequence` in `.issues/`.
 
----
+Three more things worth noticing:
 
-## 6. The reference CLI
+- The range check runs three times — the caller's instant and both derived midnights —
+  because the timezone conversion can push a boundary date over the edge.
+- The threshold is `-lunarHorizonDepression`, 0.833°, which is refraction (~0.566°) plus
+  the Moon's mean semidiameter (~0.25°). The Moon is *seen* to rise while geometrically
+  below the horizon, exactly as the Sun is.
+- The loop `break`s once both events are found, so the 1440 evaluations are a worst
+  case, not a cost every call pays. A day with neither event — the Moon up or down
+  throughout — is the expensive one, and it is the case `AboveHorizon` exists to explain.
 
-`cmd/dusk` exists to be the worked example: it calls **every** exported
-function, and every documented edge case is reachable with one flag. It is
-three files — flags and errors, assembly, rendering.
+## The reference CLI
 
-### main.go: an error taxonomy
-
-The exit status is always 1 on failure, so the *message* has to carry the
-distinction:
-
-```bash
-sed -n '29,39p' cmd/dusk/main.go
-```
-
-```output
-// errUsage reports a command line the tool cannot act on.
-var errUsage = errors.New("usage")
-
-// errNoBuildInfo reports a binary carrying no embedded build information,
-// which happens only to one built in a way `go build` does not.
-var errNoBuildInfo = errors.New("no build information is embedded")
-
-// errUnsupportedDate reports a run that was asked for correctly and cannot be
-// delivered. The command line was well formed; what failed was the date, and a
-// reader told "usage" goes looking for a flag he typed wrong.
-var errUnsupportedDate = errors.New("unsupported date")
-```
-
-`run` takes its streams as arguments so that every branch is reachable from a
-test, leaving `main` with nothing but the real streams and the exit code:
+`cmd/dusk` is not a product; it is an executable specification. It calls all seven
+exported functions and reaches every documented edge case from a single flag. `main`
+does almost nothing so that every branch below it is reachable from a test.
 
 ```bash
-sed -n '41,47p' cmd/dusk/main.go && echo '' && sed -n '82,116p' cmd/dusk/main.go
+sed -n '41,60p' cmd/dusk/main.go
 ```
 
 ```output
@@ -1015,6 +1007,25 @@ func main() {
 	}
 }
 
+// run is the whole program. main only supplies the real streams and the exit
+// status, which keeps every branch below reachable from a test.
+//
+// stdout is the data channel - the report, the version - and stderr is where
+// the tool talks to whoever is driving it, so that `dusk ... --json | jq`
+// pipes a record and not a complaint.
+func run(args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("dusk", flag.ContinueOnError)
+
+	// The flag package writes its own error and usage block on a bad flag.
+	// Discarded here so that a failure is reported once, by main, in the same
+	// shape as every other failure.
+```
+
+```bash
+sed -n '82,116p' cmd/dusk/main.go
+```
+
+```output
 	if *showVersion {
 		return writeVersion(stdout)
 	}
@@ -1052,14 +1063,10 @@ func main() {
 }
 ```
 
-Two small decisions do a lot of work here:
-
-- `setFlags` records which flags were *actually typed*, so `--lat 0` (the
-  equator) is distinguishable from an omitted `--lat`. All three of `--lat`,
-  `--lon` and `--tz` are required because none has a defensible default.
-- `parseDate` anchors the date at **midday**, not midnight. A handful of zones
-  move their clocks at midnight — Santiago in September, Havana in March —
-  where 00:00 does not exist and would silently resolve to the previous day.
+`parseDate` is a two-line function carrying a hard-won bug fix. It anchors the parsed
+date at **midday** in the observer's zone rather than midnight, because a few zones —
+`America/Santiago` in September, `America/Havana` in March — have no 00:00 on transition
+days, and Go resolves the missing hour backwards into the previous day.
 
 ```bash
 sed -n '149,167p' cmd/dusk/main.go
@@ -1087,48 +1094,9 @@ func parseDate(arg string, loc *time.Location) (time.Time, error) {
 }
 ```
 
-### report.go: turning errors into a value
-
-The library reports polar geometry with sentinel errors. The CLI has to
-*print* something either way, so it converts the sentinels into a value the
-renderer can branch on:
-
-```bash
-sed -n '14,36p' cmd/dusk/report.go
-```
-
-```output
-// horizonState says whether a crossing happened, or why the geometry forbade
-// it. The library signals this with two sentinel errors; carrying it as a value
-// lets the renderer compose its own prose instead of parsing ours.
-type horizonState int
-
-const (
-	stateCrosses    horizonState = iota // the times are real
-	stateStaysAbove                     // ErrCircumpolar at this angle
-	stateStaysBelow                     // ErrNeverRises at this angle
-)
-
-// stateOf maps the library's sentinels onto horizonState. Any other error is a
-// genuine failure and is reported as not-a-state.
-func stateOf(err error) (horizonState, bool) {
-	switch {
-	case errors.Is(err, dusk.ErrCircumpolar):
-		return stateStaysAbove, true
-	case errors.Is(err, dusk.ErrNeverRises):
-		return stateStaysBelow, true
-	default:
-		return stateCrosses, false
-	}
-}
-```
-
-The `ok` return is the important half: a sentinel is a *state* to be
-described, anything else is a real failure that should abort the run.
-
-**The single subtlest thing in the codebase** lives in `twilightReports`.
-Recall that `TwilightEvent.Dawn` is *tomorrow* morning's. A day report wants
-*this* morning's — so each band is computed twice, against two different dates:
+`buildReport` calls every public entry point in turn. The twilight assembly is the part
+worth reading, because it is where the library's asymmetric `TwilightEvent` meets a
+report that wants *this* morning's dawn.
 
 ```bash
 sed -n '195,237p' cmd/dusk/report.go
@@ -1180,15 +1148,12 @@ func twilightReports(date time.Time, obs dusk.Observer) ([]TwilightReport, error
 }
 ```
 
-Yesterday's call supplies the dawn and nothing else — its *state* is thrown
-away deliberately, because on a polar transition day it describes a night
-this report is not about.
+`callTwilight` in between them separates three outcomes the library conflates into one
+`error` return: a real event, an expected polar state, and a genuine failure. Only the
+third aborts the report — polar geometry is a *result* here, and the command exits 0.
 
-### render.go: a day in the order it is lived
-
-The library returns results grouped by the call that produced them — sun,
-three twilight bands, moon. Nobody experiences a day that way. `renderText`
-flattens everything into one clock-ordered list:
+The renderer's job is to undo the library's grouping. `dusk` returns results grouped by
+the call that produced them; a day is not lived in that order.
 
 ```bash
 sed -n '80,117p' cmd/dusk/render.go
@@ -1235,108 +1200,14 @@ func timeline(report Report) []dayEvent {
 }
 ```
 
-The timeline can only show events that *happened*. A polar day would print a
-short list of times with no hint that the sun never came up, so a prose block
-sits above it. The twilight half collapses three facts into one sentence:
+A zero time simply never enters the list, which is how "the Moon did not set today"
+renders as an absence rather than as `00:00`. The `at.Day() != day` check exists because
+a sunset at 00:03 belongs to the day *after* the one being reported, and sorts correctly
+but reads as a mistake without the date said out loud.
 
-```bash
-sed -n '162,206p' cmd/dusk/render.go
-```
+## Running it
 
-```output
-// twilightConditions collapses the bands that never arrive into one sentence
-// each way. Printing one line per band repeats the same fact three times: if
-// the sun never drops 6 degrees below the horizon it never drops 12 or 18
-// either, so the shallowest band that fails is the whole story.
-func twilightConditions(bands []TwilightReport) []string {
-	var (
-		lines    []string
-		tooLight []string
-		tooDark  []string
-		lightest = 90
-		deepest  int
-	)
-
-	for _, band := range bands {
-		switch band.state {
-		case stateStaysAbove:
-			tooLight = append(tooLight, strings.ToLower(band.Name))
-			lightest = min(lightest, band.degrees)
-		case stateStaysBelow:
-			tooDark = append(tooDark, strings.ToLower(band.Name))
-			deepest = max(deepest, band.degrees)
-		case stateCrosses:
-		}
-	}
-
-	// Scoped to tonight, because a band's state is tonight's. On a transition
-	// day this morning's dawn came from yesterday's call and is real, so an
-	// unqualified "never drops 6° below the horizon" would sit directly above
-	// the dawn that disproves it.
-	if len(tooLight) > 0 {
-		lines = append(lines, fmt.Sprintf(
-			"The sun never drops %d° below the horizon tonight, so %s twilight never arrives.",
-			lightest, join(tooLight),
-		))
-	}
-
-	if len(tooDark) > 0 {
-		lines = append(lines, fmt.Sprintf(
-			"The sun never climbs within %d° of the horizon, so %s darkness lasts all day.",
-			deepest, join(tooDark),
-		))
-	}
-
-	return lines
-}
-```
-
-If the sun never drops 6° below the horizon it never drops 12° or 18° either,
-so naming all three bands says the same thing three times — only the
-shallowest failing band is reported. And the sentence is scoped to *tonight*,
-because on a transition day this morning's dawn is real and an unqualified
-claim would sit directly above the dawn that disproves it.
-
-`moonCondition` handles the case with no sentinel to lean on:
-
-```bash
-sed -n '208,232p' cmd/dusk/render.go
-```
-
-```output
-// moonCondition explains a moon that does not cross, and flags a moon that is
-// already up at midnight - which is why a moonset can precede a moonrise.
-func moonCondition(moon MoonReport) string {
-	switch {
-	case moon.Rise.IsZero() && moon.Set.IsZero():
-		// A lunar day runs about 24h50m, so at high latitudes the Moon can be
-		// up for the whole calendar day without crossing. Unlike the Sun, the
-		// library reports this with AboveHorizon rather than a sentinel error
-		// - MoonriseMoonset never returns one - and without consulting it the
-		// report reads as though the Moon were absent.
-		if moon.AboveHorizon {
-			return "The moon stays above the horizon all day."
-		}
-
-		return "The moon neither rises nor sets today."
-	case moon.Rise.IsZero():
-		return "The moon is already up at midnight and does not rise again today."
-	case moon.Set.IsZero():
-		return "The moon does not set today."
-	case moon.AboveHorizon:
-		return "The moon is already up at midnight, so today's moonset precedes its moonrise."
-	default:
-		return ""
-	}
-}
-```
-
----
-
-## 7. Seeing it run
-
-An ordinary mid-latitude day. Everything crosses, so there is no prose block
-at all — just the timeline and the totals:
+Grand Rapids on the June solstice — a full crossing day, everything present:
 
 ```bash
 go run ./cmd/dusk --lat 42.9634 --lon -85.6681 --tz America/Detroit --date 2025-06-21
@@ -1363,9 +1234,11 @@ Saturday 21 June 2025
   Moon       Waning Crescent, 19%
 ```
 
-Tromsø, 69.6°N, on the winter solstice. `SunriseSunset` returns
-`ErrNeverRises`, but civil twilight still arrives — and the report says so in
-one sentence rather than leaving the two facts to contradict each other:
+USNO gives sunrise 06:03 and sunset 21:25 EDT for that date and place, so the solar path
+is inside its stated 1–2 minute budget.
+
+Tromsø at the winter solstice — the sun never rises, and the whole polar vocabulary
+comes out at once:
 
 ```bash
 go run ./cmd/dusk --lat 69.6492 --lon 18.9553 --tz Europe/Oslo --date 2025-12-21
@@ -1390,75 +1263,101 @@ Sunday 21 December 2025
   Moon       New Moon, 2%
 ```
 
-The same place six months later. Now the sun never sets, and no band of
-twilight ever arrives — `twilightConditions` collapses all three into a single
-clause instead of repeating the fact three times. And with the moon already up
-at midnight, its **moonset precedes its moonrise**; without `moonCondition`
-saying so, that timeline would read as a sorting bug:
+Every line of that is a specific branch. "The sun does not rise today" is
+`ErrNeverRises` from `solarHourAngle` at depression 0. "Twilight still reaches civil
+depth around midday" is `sunCondition` looking through the bands for one whose state is
+still `stateCrosses` — without it, "the sun does not rise" would sit unexplained beside
+a civil dawn. "The moon neither rises nor sets today" is the zero-time path with
+`AboveHorizon` false. And the whole thing exits 0.
+
+The JSON shape is the same data with the notes carried as fields. Time fields use
+`omitzero`, not `omitempty` — a zero `time.Time` is a struct, and `omitempty` would emit
+a useless `0001-01-01T00:00:00Z` rather than dropping it.
 
 ```bash
-go run ./cmd/dusk --lat 69.6492 --lon 18.9553 --tz Europe/Oslo --date 2025-06-21
-```
-
-```output
-Saturday 21 June 2025
-69.6492°N  18.9553°E  ·  Europe/Oslo
-
-  The sun does not set today (midnight sun).
-  The sun never drops 6° below the horizon tonight, so civil,
-  nautical and astronomical twilight never arrives.
-  The moon is already up at midnight, so today's moonset precedes
-  its moonrise.
-
-  19:41   Moonset
-  22:18   Moonrise
-
-  Moon       Waning Crescent, 21%
-```
-
-And the machine-readable form. Times use `omitzero`, not `omitempty` — a zero
-`time.Time` is a struct, and `omitempty` would happily emit
-`"0001-01-01T00:00:00Z"`. Events that did not occur are simply absent, and the
-polar state survives as a `note`:
-
-```bash
-go run ./cmd/dusk --lat 69.6492 --lon 18.9553 --tz Europe/Oslo --date 2025-12-21 --json | head -22
+go run ./cmd/dusk --lat -1.2921 --lon 36.8219 --tz Africa/Nairobi --date 2025-03-20 --json
 ```
 
 ```output
 {
-  "lat": 69.6492,
-  "lon": 18.9553,
-  "zone": "Europe/Oslo",
-  "date": "2025-12-21",
+  "lat": -1.2921,
+  "lon": 36.8219,
+  "zone": "Africa/Nairobi",
+  "date": "2025-03-20",
   "sun": {
-    "note": "polar night - the sun does not rise today"
+    "rise": "2025-03-20T06:36:52+03:00",
+    "noon": "2025-03-20T12:40:12+03:00",
+    "set": "2025-03-20T18:43:33+03:00",
+    "daylight": "12h07m"
   },
   "twilight": [
     {
       "name": "Civil",
-      "dawn": "2025-12-21T09:31:12+01:00",
-      "dusk": "2025-12-21T13:53:14+01:00",
-      "night": "19h38m"
+      "dawn": "2025-03-20T06:16:11+03:00",
+      "dusk": "2025-03-20T19:04:14+03:00",
+      "night": "11h12m"
     },
     {
       "name": "Nautical",
-      "dawn": "2025-12-21T07:46:45+01:00",
-      "dusk": "2025-12-21T15:37:42+01:00",
-      "night": "16h10m"
+      "dawn": "2025-03-20T05:52:11+03:00",
+      "dusk": "2025-03-20T19:28:14+03:00",
+      "night": "10h24m"
     },
     {
+      "name": "Astronomical",
+      "dawn": "2025-03-20T05:28:10+03:00",
+      "dusk": "2025-03-20T19:52:14+03:00",
+      "night": "9h36m"
+    }
+  ],
+  "moon": {
+    "rise": "2025-03-20T23:11:00+03:00",
+    "set": "2025-03-20T10:59:00+03:00",
+    "aboveHorizon": true
+  },
+  "phase": {
+    "name": "Waning Gibbous",
+    "illumination": 69.77342282616303,
+    "elongation": 246.8470248943793,
+    "daysApprox": 20.24871745798808,
+    "waxing": false
+  }
+}
 ```
 
----
+Look at the moon block: `set` is 10:59 and `rise` is 23:11 — the set precedes the rise,
+and `aboveHorizon` is true. That is not a bug and it is why the flag exists. A lunar day
+runs about 24h50m, so the Moon that rose late yesterday evening was still up at local
+midnight and set this morning before rising again tonight.
 
-## 8. How the project holds itself together
+## How it is held together
 
-CI runs exactly one command: `task`. Nothing is checked in CI that you cannot
-run locally, and nothing runs locally that CI skips.
+There is no release automation and no coverage percentage. The gate is one task list,
+and CI runs exactly it.
 
-The unusual part is how coverage is enforced. Instead of a percentage, a file
-records the **count of uncovered statements per package**:
+```bash
+sed -n '39,50p' Taskfile.yml
+```
+
+```output
+
+tasks:
+  default:
+    desc: The whole gate, in the order a failure is cheapest to read
+    cmds:
+      - task: tidy
+      - task: vet
+      - task: lint
+      - task: nilaway
+      - task: test
+      - task: ratchet
+
+```
+
+Coverage is held by a **ratchet** rather than a threshold: the count of uncovered
+statements per package is checked in, and the gate diffs the current counts against it.
+It therefore fails in both directions — a number that rises is lost coverage, one that
+falls is coverage to lock in — and on a package appearing or vanishing.
 
 ```bash
 cat coverage.ratchet
@@ -1472,31 +1371,67 @@ github.com/philoserf/dusk/v4 10
 github.com/philoserf/dusk/v4/cmd/dusk 19
 ```
 
-The gate diffs the current counts against that file and fails **in both
-directions** — a number that rises is lost coverage, a number that falls is
-coverage to lock in with `task ratchet:update`. It also fails if a package
-appears or vanishes.
+An integer rather than a percentage because a percentage holds still while a guarded
+branch adds one covered statement and one uncovered, and grows more forgiving as the
+repository grows. The catch, documented in the `ratchet` task itself: blank lines split
+coverage blocks, so any reflow moves these counts without changing what the tests reach.
+Read the diff before assuming a regression.
 
-An integer rather than a percentage because a percentage holds still while a
-guarded branch adds one covered statement and one uncovered, and it grows more
-forgiving as the repository grows. The entire check is an awk program in
-`Taskfile.yml` — there is no tool to maintain.
+Behind those two numbers, the count of test, fuzz, benchmark and example functions:
 
-One consequence worth knowing before you panic at a red gate: reflowing blank
-lines splits coverage blocks, so a pure refactor can move these numbers
-without changing what the tests actually reach. Read the diff first.
+```bash
+grep -rhE '^func (Test|Fuzz|Benchmark|Example)' --include='*_test.go' . | wc -l | tr -d ' '
+```
+
+```output
+74
+```
+
+```bash
+go build ./... && go vet ./... && go test ./... >/dev/null 2>&1 && echo 'build, vet and the suite all pass'
+```
+
+```output
+build, vet and the suite all pass
+```
 
 ---
 
-## Where to look first
+## What this pass turned up
 
-| Symptom | Start here |
-| --- | --- |
-| Wrong times for a given zone | the `date.In(obs.loc)` line at the top of the affected public function |
-| Wrong rise time at high latitude | `solarHourAngle`'s `cosHA < -1` / `> 1` branches, and whether `depression` is 0 |
-| Moon test drifting after a toolchain update | whether `clamp` is hiding a `NaN` in `asinx`/`acosx` |
-| Wrong phase name | `lunarPhaseName`'s 22.5° cutoffs, not the phase math |
-| Dawn appears to run backwards | `twilightReports` — `Dawn` comes from *yesterday's* call |
+Tracing the code end to end raised two things a reader should not have to rediscover.
+Both are filed in `.issues/` under `**Source:** code-walkthrough`.
 
-For the design rationale behind these shapes — why `Observer` validates once,
-why v3 dropped elevation and `ObjectTransit` — see `THEORY.md`.
+The first is the day-boundary contrast above: `SunriseSunset` builds the calendar day as
+UTC midnight and `MoonriseMoonset` builds it as true local midnight, both correctly and
+for different reasons, and neither comment acknowledges the other. Read in call order
+the second looks like a contradiction of the first, and it is the one place this
+narrative had to stop and hold two things in view at once.
+
+The second is structural. `epoch.go` holds two layers — the time helpers that everything
+sits on, and the coordinate conversions that only the Moon's scan uses — and no reading
+order keeps them together. The file says as much itself, in a banner comment reading
+"moved from coord.go"; two sibling banners in `solar.go` and `lunar.go` record the same
+consolidation.
+
+Worth recording as a negative result: the previous `WALKTHROUGH.md` was rebuilt at
+v4.0.0, and no `.go` file has changed since, so its narrative had not gone stale. The
+drift found in this repository is in `README.md` and in a doc comment, not here.
+
+### Index
+
+| # | Severity | Issue | Primary location |
+| --- | --- | --- | --- |
+| 1 | medium | `two-day-constructions-read-as-a-contradiction-in-sequence` | `solar.go:43-45`, `lunar.go:169-173` |
+| 2 | low | `epoch-go-holds-two-layers-that-no-reading-order-can-keep-together` | `epoch.go:109-111`, `epoch.go:157-159` |
+
+**Total: 2 issues (0 critical, 0 high, 1 medium, 1 low)**
+
+### Related existing findings
+
+`code-theory` filed seven findings against this repository in the same run, and three of
+them touch code this walkthrough steps through: `solarposition-has-no-production-caller`
+(the continuous-time solar position, stranded when v3 unexported it),
+`horizontal-azimuth-can-be-360-at-the-pole-guard` (the unread `az` field), and
+`sun-and-moon-fuzz-targets-assert-nothing`. See `THEORY.md` for the full index.
+
